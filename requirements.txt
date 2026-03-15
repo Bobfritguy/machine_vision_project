@@ -1,0 +1,12 @@
+# Core deep learning
+#torch>=2.1.0
+#torchvision>=0.16.0
+
+# Scientific computing
+numpy>=1.24.0
+
+# Visualisation (optional but used for training curves and confusion matrix)
+matplotlib>=3.7.0
+
+# Progress bars (optional)
+tqdm>=4.65.0
