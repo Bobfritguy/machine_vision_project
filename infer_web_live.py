@@ -135,6 +135,17 @@ class SharedState:
     total_windows: int = 0
     errors: int = 0
     message: str = ""
+    recording_active: bool = False
+    recording_paused: bool = False
+    spelled_text: str = ""
+    appended_count: int = 0
+    spelling_threshold: float = 0.85
+    spelling_cooldown_s: float = 0.8
+    spelling_min_streak: int = 2
+    last_committed_letter: str = ""
+    last_commit_time_s: float = 0.0
+    streak_letter: str = ""
+    streak_count: int = 0
 
 
 def parse_args():
@@ -155,6 +166,12 @@ def parse_args():
     )
     p.add_argument("--jpeg-quality", type=int, default=70,
                    help="JPEG quality for stream frames (1-95, default 70).")
+    p.add_argument("--spelling-threshold", type=float, default=0.85,
+                   help="Confidence threshold [0,1] to accept letters into spelled text.")
+    p.add_argument("--spelling-cooldown-s", type=float, default=0.8,
+                   help="Minimum seconds between accepted letters.")
+    p.add_argument("--spelling-min-streak", type=int, default=2,
+                   help="Consecutive high-confidence windows required before committing a letter.")
     return p.parse_args()
 
 
@@ -205,9 +222,27 @@ def make_app(state: SharedState) -> Flask:
         <strong>Top-k</strong>
         <div id="topk" class="muted">-</div>
       </div>
+      <div style="margin-top:12px; border-top:1px solid #2b2b2b; padding-top:8px;">
+        <strong>Spelling recorder</strong>
+        <div>State: <span id="recstate" class="muted">idle</span></div>
+        <div style="margin:6px 0; display:flex; gap:6px; flex-wrap:wrap;">
+          <button onclick="recAction('start')">Record</button>
+          <button onclick="recAction('pause')">Pause</button>
+          <button onclick="recAction('clear_stop')">Clear/Stop</button>
+        </div>
+        <div style="word-break:break-all;">
+          <span class="muted">Spelled:</span> <span id="spelled">-</span>
+        </div>
+      </div>
     </div>
   </div>
   <script>
+    async function recAction(action) {
+      try {
+        await fetch('/recorder/' + action, { method: 'POST' });
+      } catch (e) {}
+    }
+
     async function tick() {
       try {
         const m = await fetch('/metrics').then(r => r.json());
@@ -223,6 +258,9 @@ def make_app(state: SharedState) -> Flask:
         document.getElementById('msg').textContent = m.message || '-';
         document.getElementById('topk').textContent =
           (m.topk || []).map(([c, s]) => `${c}:${(s*100).toFixed(2)}%`).join('  ');
+        document.getElementById('recstate').textContent =
+          m.recording_active ? (m.recording_paused ? 'paused' : 'recording') : 'idle';
+        document.getElementById('spelled').textContent = m.spelled_text || '-';
       } catch (e) {}
     }
     setInterval(tick, 500);
@@ -270,8 +308,42 @@ def make_app(state: SharedState) -> Flask:
                 "total_windows": state.total_windows,
                 "errors": state.errors,
                 "message": state.message,
+                "recording_active": state.recording_active,
+                "recording_paused": state.recording_paused,
+                "spelled_text": state.spelled_text,
+                "appended_count": state.appended_count,
+                "spelling_threshold": state.spelling_threshold,
+                "spelling_cooldown_s": state.spelling_cooldown_s,
+                "spelling_min_streak": state.spelling_min_streak,
             }
         return jsonify(payload)
+
+    @app.route("/recorder/start", methods=["POST"])
+    def recorder_start():
+        with state.lock:
+            state.recording_active = True
+            state.recording_paused = False
+        return jsonify({"ok": True})
+
+    @app.route("/recorder/pause", methods=["POST"])
+    def recorder_pause():
+        with state.lock:
+            if state.recording_active:
+                state.recording_paused = True
+        return jsonify({"ok": True})
+
+    @app.route("/recorder/clear_stop", methods=["POST"])
+    def recorder_clear_stop():
+        with state.lock:
+            state.recording_active = False
+            state.recording_paused = False
+            state.spelled_text = ""
+            state.appended_count = 0
+            state.last_committed_letter = ""
+            state.last_commit_time_s = 0.0
+            state.streak_letter = ""
+            state.streak_count = 0
+        return jsonify({"ok": True})
 
     return app
 
@@ -418,6 +490,7 @@ def run_camera_loop(args, state: SharedState) -> None:
                 quality=max(1, min(95, args.jpeg_quality)),
             )
 
+            now_s = time.time()
             with state.lock:
                 state.latest_jpeg = frame_jpeg
                 state.last_update_s = time.time()
@@ -431,6 +504,31 @@ def run_camera_loop(args, state: SharedState) -> None:
                 state.total_windows += 1
                 state.status = "running"
                 state.message = ""
+
+                # Spelling recorder: require sustained confidence + cooldown.
+                if state.confidence >= state.spelling_threshold:
+                    if state.prediction == state.streak_letter:
+                        state.streak_count += 1
+                    else:
+                        state.streak_letter = state.prediction
+                        state.streak_count = 1
+                else:
+                    state.streak_letter = ""
+                    state.streak_count = 0
+
+                if state.recording_active and not state.recording_paused:
+                    ready = (
+                        state.streak_count >= state.spelling_min_streak
+                        and (now_s - state.last_commit_time_s) >= state.spelling_cooldown_s
+                    )
+                    if ready:
+                        same_letter = state.streak_letter == state.last_committed_letter
+                        # Allow doubles, but require extra dwell if repeating the same letter.
+                        if (not same_letter) or ((now_s - state.last_commit_time_s) >= 2.0 * state.spelling_cooldown_s):
+                            state.spelled_text += state.streak_letter
+                            state.last_committed_letter = state.streak_letter
+                            state.last_commit_time_s = now_s
+                            state.appended_count += 1
     except Exception as exc:
         with state.lock:
             state.status = "error"
@@ -442,6 +540,9 @@ def run_camera_loop(args, state: SharedState) -> None:
 def main() -> None:
     args = parse_args()
     state = SharedState()
+    state.spelling_threshold = max(0.0, min(1.0, float(args.spelling_threshold)))
+    state.spelling_cooldown_s = max(0.0, float(args.spelling_cooldown_s))
+    state.spelling_min_streak = max(1, int(args.spelling_min_streak))
 
     worker = threading.Thread(target=run_camera_loop, args=(args, state), daemon=True)
     worker.start()
