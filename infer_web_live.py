@@ -14,21 +14,54 @@ shape (N, 4) float32 arrays with columns [t, x, y, p].
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import os
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
+from io import BytesIO
 from typing import Optional
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 from flask import Flask, Response, jsonify
+from PIL import Image
 
 from infer_live import GENX320_RESOLUTION, LiveInferencer
 from utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def resolve_events_iterator():
+    """
+    Return EventsIterator class from Metavision bindings using known import paths.
+    """
+    last_exc = None
+    try:
+        from metavision_core.event_io import EventsIterator  # type: ignore
+        return EventsIterator
+    except ImportError as exc:
+        last_exc = exc
+
+    try:
+        from metavision_core.event_io.events_iterator import EventsIterator  # type: ignore
+        return EventsIterator
+    except ImportError as exc:
+        last_exc = exc
+
+    return None, last_exc
+
+
+def metavision_import_diagnostics() -> str:
+    in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+    mod = importlib.util.find_spec("metavision_core")
+    return (
+        f"python={sys.executable} "
+        f"venv={in_venv} "
+        f"metavision_core_found={mod is not None} "
+        f"PYTHONPATH={os.environ.get('PYTHONPATH', '')}"
+    )
 
 
 def structured_events_to_nx4(events_struct: np.ndarray) -> np.ndarray:
@@ -51,9 +84,9 @@ def structured_events_to_nx4(events_struct: np.ndarray) -> np.ndarray:
     raise ValueError(f"Unsupported event array shape/dtype: {events_struct.shape}, {events_struct.dtype}")
 
 
-def render_events_png(events_nx4: np.ndarray, sensor_wh: tuple[int, int]) -> bytes:
+def render_events_jpeg(events_nx4: np.ndarray, sensor_wh: tuple[int, int], quality: int) -> bytes:
     """
-    Render a color event frame as PNG bytes:
+    Render a color event frame as JPEG bytes:
       - red channel: positive events
       - blue channel: negative events
     """
@@ -74,28 +107,20 @@ def render_events_png(events_nx4: np.ndarray, sensor_wh: tuple[int, int]) -> byt
     neg = np.log1p(neg)
 
     scale = max(float(pos.max()), float(neg.max()), 1e-6)
-    rgb = np.zeros((H, W, 3), dtype=np.float32)
-    rgb[..., 0] = pos / scale
-    rgb[..., 2] = neg / scale
+    rgb = np.zeros((H, W, 3), dtype=np.uint8)
+    rgb[..., 0] = np.clip((pos / scale) * 255.0, 0, 255).astype(np.uint8)
+    rgb[..., 2] = np.clip((neg / scale) * 255.0, 0, 255).astype(np.uint8)
 
-    fig = plt.figure(figsize=(6, 6), dpi=90)
-    ax = fig.add_subplot(111)
-    ax.imshow(rgb, interpolation="nearest")
-    ax.set_title("Live events (red=positive, blue=negative)")
-    ax.axis("off")
-
-    from io import BytesIO
+    img = Image.fromarray(rgb, mode="RGB")
     buff = BytesIO()
-    fig.tight_layout(pad=0.1)
-    fig.savefig(buff, format="png")
-    plt.close(fig)
+    img.save(buff, format="JPEG", quality=quality, optimize=False)
     return buff.getvalue()
 
 
 @dataclass
 class SharedState:
     lock: threading.Lock = field(default_factory=threading.Lock)
-    latest_png: Optional[bytes] = None
+    latest_jpeg: Optional[bytes] = None
     last_update_s: float = 0.0
     status: str = "starting"
     prediction: str = "-"
@@ -121,6 +146,8 @@ def parse_args():
     p.add_argument("--crop-to-training-aspect", action="store_true")
     p.add_argument("--input-path", default="",
                    help="Metavision input path. Leave empty to open the live camera.")
+    p.add_argument("--jpeg-quality", type=int, default=70,
+                   help="JPEG quality for stream frames (1-95, default 70).")
     return p.parse_args()
 
 
@@ -152,7 +179,7 @@ def make_app(state: SharedState) -> Flask:
   <h2>X320 Live ASL Dashboard</h2>
   <div class="wrap">
     <div class="panel">
-      <img id="feed" src="/frame.png" />
+      <img id="feed" src="/stream.mjpg" />
     </div>
     <div class="panel">
       <div>Status: <span id="status" class="muted">starting</span></div>
@@ -189,23 +216,36 @@ def make_app(state: SharedState) -> Flask:
         document.getElementById('msg').textContent = m.message || '-';
         document.getElementById('topk').textContent =
           (m.topk || []).map(([c, s]) => `${c}:${(s*100).toFixed(2)}%`).join('  ');
-        document.getElementById('feed').src = '/frame.png?ts=' + Date.now();
       } catch (e) {}
     }
-    setInterval(tick, 200);
+    setInterval(tick, 500);
     tick();
   </script>
 </body>
 </html>
         """
 
-    @app.route("/frame.png")
-    def frame():
-        with state.lock:
-            data = state.latest_png
-        if data is None:
-            return Response(status=204)
-        return Response(data, mimetype="image/png")
+    @app.route("/stream.mjpg")
+    def mjpeg_stream():
+        def generate():
+            boundary = b"--frame\r\n"
+            while True:
+                with state.lock:
+                    data = state.latest_jpeg
+                if data is None:
+                    time.sleep(0.02)
+                    continue
+                yield boundary
+                yield b"Content-Type: image/jpeg\r\n"
+                yield f"Content-Length: {len(data)}\r\n\r\n".encode("ascii")
+                yield data
+                yield b"\r\n"
+                time.sleep(0.02)
+
+        return Response(
+            generate(),
+            mimetype="multipart/x-mixed-replace; boundary=frame",
+        )
 
     @app.route("/metrics")
     def metrics():
@@ -236,14 +276,25 @@ def run_camera_loop(args, state: SharedState) -> None:
       2) runs model inference,
       3) updates latest frame and dashboard metrics.
     """
-    try:
-        from metavision_core.event_io import EventsIterator
-    except ImportError as exc:
+    resolved = resolve_events_iterator()
+    if isinstance(resolved, tuple):
+        EventsIterator, import_exc = resolved
+    else:
+        EventsIterator, import_exc = resolved, None
+
+    if EventsIterator is None:
+        diag = metavision_import_diagnostics()
+        hint = "Install h5py in this environment (pip install h5py)." if isinstance(import_exc, ModuleNotFoundError) and str(getattr(import_exc, "name", "")) == "h5py" else ""
         with state.lock:
             state.status = "error"
             state.errors += 1
-            state.message = "metavision_core is not importable in this Python environment."
-        raise RuntimeError("Install/run with Metavision Python bindings available.") from exc
+            state.message = (
+                "Cannot import Metavision Python bindings. "
+                "Use the same interpreter where Metavision is installed. "
+                f"Diagnostics: {diag} ImportError={import_exc!r} {hint}".strip()
+            )
+        logger.error(state.message)
+        return
 
     inferencer = LiveInferencer(
         checkpoint_path=args.checkpoint,
@@ -257,41 +308,52 @@ def run_camera_loop(args, state: SharedState) -> None:
     iterator = EventsIterator(input_path=args.input_path, delta_t=args.delta_t_us)
     window_s = args.delta_t_us / 1e6
 
-    for events_struct in iterator:
-        if events_struct is None:
-            continue
+    try:
+        for events_struct in iterator:
+            if events_struct is None:
+                continue
 
-        events = structured_events_to_nx4(events_struct)
-        n = int(len(events))
-        if n == 0:
-            continue
+            events = structured_events_to_nx4(events_struct)
+            n = int(len(events))
+            if n == 0:
+                continue
 
-        start = time.perf_counter()
-        pred = inferencer.predict(events)
-        infer_ms = (time.perf_counter() - start) * 1000.0
+            start = time.perf_counter()
+            pred = inferencer.predict(events)
+            infer_ms = (time.perf_counter() - start) * 1000.0
 
-        sorted_scores = sorted(
-            pred["scores"].items(),
-            key=lambda kv: kv[1],
-            reverse=True,
-        )
-        topk = sorted_scores[:args.top_k]
+            sorted_scores = sorted(
+                pred["scores"].items(),
+                key=lambda kv: kv[1],
+                reverse=True,
+            )
+            topk = sorted_scores[:args.top_k]
 
-        frame_png = render_events_png(events, sensor_wh=GENX320_RESOLUTION)
+            frame_jpeg = render_events_jpeg(
+                events,
+                sensor_wh=GENX320_RESOLUTION,
+                quality=max(1, min(95, args.jpeg_quality)),
+            )
 
+            with state.lock:
+                state.latest_jpeg = frame_jpeg
+                state.last_update_s = time.time()
+                state.prediction = pred["predicted_class"]
+                state.confidence = float(pred["confidence"])
+                state.topk = [(k, float(v)) for k, v in topk]
+                state.window_events = n
+                state.event_rate_eps = n / window_s
+                state.inference_ms = infer_ms
+                state.inference_fps = 1000.0 / infer_ms if infer_ms > 0 else 0.0
+                state.total_windows += 1
+                state.status = "running"
+                state.message = ""
+    except Exception as exc:
         with state.lock:
-            state.latest_png = frame_png
-            state.last_update_s = time.time()
-            state.prediction = pred["predicted_class"]
-            state.confidence = float(pred["confidence"])
-            state.topk = [(k, float(v)) for k, v in topk]
-            state.window_events = n
-            state.event_rate_eps = n / window_s
-            state.inference_ms = infer_ms
-            state.inference_fps = 1000.0 / infer_ms if infer_ms > 0 else 0.0
-            state.total_windows += 1
-            state.status = "running"
-            state.message = ""
+            state.status = "error"
+            state.errors += 1
+            state.message = f"Camera loop failed: {exc}"
+        logger.exception("Camera loop failed")
 
 
 def main() -> None:
