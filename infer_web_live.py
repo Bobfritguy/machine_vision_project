@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import sys
 import threading
@@ -311,36 +312,82 @@ def run_camera_loop(args, state: SharedState) -> None:
         state.status = "running"
         state.message = "Camera loop started."
 
-    iterator_kwargs = {
-        "input_path": args.input_path,
-        "delta_t": args.delta_t_us,
-    }
-    if args.input_camera_config:
-        cfg_path = str(Path(args.input_camera_config).expanduser().resolve())
-        # Metavision builds vary on kwarg names; try common ones.
-        iterator_candidates = [
-            {"input_camera_config": cfg_path},
-            {"camera_config": cfg_path},
-            {"bias_file": cfg_path},
-        ]
-        iterator = None
-        last_exc = None
-        for extra in iterator_candidates:
-            try:
-                iterator = EventsIterator(**iterator_kwargs, **extra)
+    iterator_kwargs = {"input_path": args.input_path, "delta_t": args.delta_t_us}
+    iterator = None
+    device = None
+    try:
+        if args.input_camera_config:
+            cfg_path = str(Path(args.input_camera_config).expanduser().resolve())
+
+            # First try direct EventsIterator kwargs (works on some SDK builds).
+            iterator_candidates = [
+                {"input_camera_config": cfg_path},
+                {"camera_config": cfg_path},
+                {"bias_file": cfg_path},
+            ]
+            last_exc = None
+            for extra in iterator_candidates:
+                try:
+                    iterator = EventsIterator(**iterator_kwargs, **extra)
+                    with state.lock:
+                        state.message = f"Using camera config via iterator kwarg: {cfg_path}"
+                    break
+                except TypeError as exc:
+                    last_exc = exc
+
+            # If kwargs are not supported, apply biases through HAL device.
+            if iterator is None:
+                from metavision_core.event_io.raw_reader import initiate_device  # type: ignore
+                device = initiate_device(path=args.input_path)
+                i_ll_biases = device.get_i_ll_biases()
+                if i_ll_biases is None:
+                    raise RuntimeError("Device does not expose i_ll_biases facility.")
+
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                biases = cfg.get("ll_biases_state", {}).get("bias", [])
+                if not isinstance(biases, list) or not biases:
+                    raise RuntimeError("Camera config has no ll_biases_state.bias entries.")
+
+                applied = 0
+                for item in biases:
+                    name = item.get("name")
+                    value = item.get("value")
+                    if name is None or value is None:
+                        continue
+
+                    ok = False
+                    for meth_name in ("set", "set_bias", "set_bias_value"):
+                        if not hasattr(i_ll_biases, meth_name):
+                            continue
+                        meth = getattr(i_ll_biases, meth_name)
+                        try:
+                            ret = meth(str(name), int(value))
+                            ok = (ret is None) or bool(ret)
+                            if ok:
+                                break
+                        except TypeError:
+                            continue
+                    if not ok:
+                        raise RuntimeError(f"Failed to apply bias {name}={value}.")
+                    applied += 1
+
+                if not hasattr(EventsIterator, "from_device"):
+                    raise RuntimeError("EventsIterator.from_device is unavailable in this SDK.")
+                iterator = EventsIterator.from_device(device=device, delta_t=args.delta_t_us)
                 with state.lock:
-                    state.message = f"Using camera config: {cfg_path}"
-                break
-            except TypeError as exc:
-                last_exc = exc
-                continue
-        if iterator is None:
-            raise RuntimeError(
-                f"Could not pass camera config to EventsIterator. Tried keys "
-                f"{[list(c.keys())[0] for c in iterator_candidates]}. Last error: {last_exc}"
-            )
-    else:
-        iterator = EventsIterator(**iterator_kwargs)
+                    state.message = f"Applied {applied} biases from {cfg_path} via HAL device."
+
+        else:
+            iterator = EventsIterator(**iterator_kwargs)
+
+    except Exception as exc:
+        with state.lock:
+            state.status = "error"
+            state.errors += 1
+            state.message = f"Camera init failed: {exc}"
+        logger.exception("Camera initialization failed")
+        return
 
     window_s = args.delta_t_us / 1e6
 
