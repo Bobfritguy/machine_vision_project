@@ -21,6 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from io import BytesIO
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -146,6 +147,11 @@ def parse_args():
     p.add_argument("--crop-to-training-aspect", action="store_true")
     p.add_argument("--input-path", default="",
                    help="Metavision input path. Leave empty to open the live camera.")
+    p.add_argument(
+        "--input-camera-config",
+        default="",
+        help="Path to Metavision camera config JSON (same format as metavision_viewer --input-camera-config).",
+    )
     p.add_argument("--jpeg-quality", type=int, default=70,
                    help="JPEG quality for stream frames (1-95, default 70).")
     return p.parse_args()
@@ -305,7 +311,37 @@ def run_camera_loop(args, state: SharedState) -> None:
         state.status = "running"
         state.message = "Camera loop started."
 
-    iterator = EventsIterator(input_path=args.input_path, delta_t=args.delta_t_us)
+    iterator_kwargs = {
+        "input_path": args.input_path,
+        "delta_t": args.delta_t_us,
+    }
+    if args.input_camera_config:
+        cfg_path = str(Path(args.input_camera_config).expanduser().resolve())
+        # Metavision builds vary on kwarg names; try common ones.
+        iterator_candidates = [
+            {"input_camera_config": cfg_path},
+            {"camera_config": cfg_path},
+            {"bias_file": cfg_path},
+        ]
+        iterator = None
+        last_exc = None
+        for extra in iterator_candidates:
+            try:
+                iterator = EventsIterator(**iterator_kwargs, **extra)
+                with state.lock:
+                    state.message = f"Using camera config: {cfg_path}"
+                break
+            except TypeError as exc:
+                last_exc = exc
+                continue
+        if iterator is None:
+            raise RuntimeError(
+                f"Could not pass camera config to EventsIterator. Tried keys "
+                f"{[list(c.keys())[0] for c in iterator_candidates]}. Last error: {last_exc}"
+            )
+    else:
+        iterator = EventsIterator(**iterator_kwargs)
+
     window_s = args.delta_t_us / 1e6
 
     try:
@@ -366,6 +402,8 @@ def main() -> None:
     app = make_app(state)
     logger.info("Starting dashboard on http://%s:%d", args.host, args.port)
     logger.info("Camera source: %r  |  delta_t=%dus", args.input_path, args.delta_t_us)
+    if args.input_camera_config:
+        logger.info("Camera config: %s", args.input_camera_config)
     app.run(host=args.host, port=args.port, debug=False, threaded=True)
 
 
