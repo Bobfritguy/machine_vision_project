@@ -32,11 +32,80 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import torch.nn.functional as F
+
 from dataset import ASLEventDataset
 from model import build_model, count_parameters
 from utils import CLASSES, NUM_CLASSES, PreprocessConfig, get_logger, seed_everything
 
 logger = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Data augmentation for event frames
+# ---------------------------------------------------------------------------
+
+class EventFrameAugment:
+    """
+    On-the-fly augmentation for event-frame tensors [C, H, W].
+
+    Designed to bridge the DAVIS240C → GenX320 domain gap by simulating
+    variations in scale, aspect ratio, and event density that differ
+    between the two sensors.
+    """
+
+    def __init__(
+        self,
+        scale_range: tuple = (0.7, 1.3),
+        aspect_jitter: float = 0.15,
+        event_dropout: float = 0.2,
+        noise_std: float = 0.05,
+        flip_lr: bool = False,
+    ):
+        self.scale_range = scale_range
+        self.aspect_jitter = aspect_jitter
+        self.event_dropout = event_dropout
+        self.noise_std = noise_std
+        self.flip_lr = flip_lr
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        C, H, W = tensor.shape
+
+        # Random horizontal flip (disabled by default – some ASL letters
+        # are mirror-ambiguous, e.g. d/g).
+        if self.flip_lr and torch.rand(1).item() < 0.5:
+            tensor = tensor.flip(-1)
+
+        # Random scale + aspect ratio jitter via affine crop-and-resize.
+        if torch.rand(1).item() < 0.5:
+            scale = self.scale_range[0] + torch.rand(1).item() * (
+                self.scale_range[1] - self.scale_range[0]
+            )
+            aspect = 1.0 + (torch.rand(1).item() * 2 - 1) * self.aspect_jitter
+
+            crop_h = min(int(H / scale * aspect), H)
+            crop_w = min(int(W / scale / aspect), W)
+            top = torch.randint(0, max(H - crop_h, 1) + 1, (1,)).item()
+            left = torch.randint(0, max(W - crop_w, 1) + 1, (1,)).item()
+
+            tensor = tensor[:, top:top + crop_h, left:left + crop_w]
+            tensor = F.interpolate(
+                tensor.unsqueeze(0), size=(H, W), mode="bilinear",
+                align_corners=False,
+            ).squeeze(0)
+
+        # Random event dropout – zero out a fraction of pixels to simulate
+        # sparser event patterns (GenX320 spreads events over more pixels).
+        if self.event_dropout > 0 and torch.rand(1).item() < 0.5:
+            mask = torch.rand(1, H, W) > self.event_dropout
+            tensor = tensor * mask.float()
+
+        # Additive Gaussian noise – simulates the different noise floor of
+        # the GenX320 (smaller pixel pitch → different noise characteristics).
+        if self.noise_std > 0 and torch.rand(1).item() < 0.5:
+            tensor = tensor + torch.randn_like(tensor) * self.noise_std
+
+        return tensor
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +203,8 @@ def parse_args():
                    help="Path to checkpoint to resume from")
     p.add_argument("--no-amp", action="store_true",
                    help="Disable automatic mixed precision")
+    p.add_argument("--no-augment", action="store_true",
+                   help="Disable data augmentation during training")
     return p.parse_args()
 
 
@@ -168,8 +239,10 @@ def main():
     # ------------------------------------------------------------------
     # Datasets and loaders
     # ------------------------------------------------------------------
+    train_transform = None if args.no_augment else EventFrameAugment()
     train_ds = ASLEventDataset(args.root, split="train",
-                               resolution=args.resolution, cfg=cfg)
+                               resolution=args.resolution, cfg=cfg,
+                               transform=train_transform)
     val_ds   = ASLEventDataset(args.root, split="test",
                                resolution=args.resolution, cfg=cfg)
 
