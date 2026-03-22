@@ -123,9 +123,20 @@ class LiveInferencer:
                 logger.warning("No PreprocessConfig found; using LR defaults.")
                 train_cfg = PreprocessConfig()
 
+        # If cropping to training aspect ratio, the effective source resolution
+        # after cropping is (W, W*3/4) instead of (W, H). The accumulation
+        # buffer must match the cropped dimensions so the gesture fills the
+        # frame the same way it does in training data.
+        if crop_to_training_aspect:
+            W, H = live_sensor_resolution
+            cropped_H = int(round(W * 3 / 4))
+            effective_source = (W, cropped_H)
+        else:
+            effective_source = live_sensor_resolution
+
         # Live config: same as training except source_resolution = live sensor
         self.live_cfg = PreprocessConfig(
-            source_resolution=live_sensor_resolution,
+            source_resolution=effective_source,
             target_resolution=train_cfg.target_resolution,
             representation=train_cfg.representation,
             num_bins=train_cfg.num_bins,
