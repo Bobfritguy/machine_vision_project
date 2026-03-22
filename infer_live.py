@@ -98,7 +98,9 @@ class LiveInferencer:
         device: Optional[str] = None,
         live_sensor_resolution: tuple = GENX320_RESOLUTION,
         crop_to_training_aspect: bool = False,
+        flip_y: bool = True,
     ):
+        self.flip_y = flip_y
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
@@ -172,6 +174,15 @@ class LiveInferencer:
             raise ValueError("Event array is empty.")
 
         events = events.astype(np.float32)
+
+        # Flip y-axis to match training data convention.
+        # The DAVIS240C (training sensor) and GenX320 use opposite y-axis
+        # orientations: the same gesture appears vertically flipped between
+        # the two. We flip y here so the model sees the same orientation
+        # it was trained on.
+        if self.flip_y:
+            _, H = self.live_sensor_resolution
+            events[:, 2] = (H - 1) - events[:, 2]
 
         # Optional: centre-crop from square to 4:3 before accumulation.
         # This mimics the training camera's FOV if desired.
