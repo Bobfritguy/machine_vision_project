@@ -63,6 +63,9 @@ class EventFrameAugment:
         flip_lr: bool = False,
         flip_ud: bool = True,
         max_rotation_deg: float = 30.0,
+        max_translate: float = 0.15,
+        contrast_range: tuple = (0.6, 1.4),
+        cutout_ratio: float = 0.15,
     ):
         self.scale_range = scale_range
         self.aspect_jitter = aspect_jitter
@@ -71,6 +74,9 @@ class EventFrameAugment:
         self.flip_lr = flip_lr
         self.flip_ud = flip_ud
         self.max_rotation_deg = max_rotation_deg
+        self.max_translate = max_translate
+        self.contrast_range = contrast_range
+        self.cutout_ratio = cutout_ratio
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         C, H, W = tensor.shape
@@ -86,17 +92,26 @@ class EventFrameAugment:
         if self.flip_ud and torch.rand(1).item() < 0.5:
             tensor = tensor.flip(-2)
 
-        # Random rotation – makes the model robust to camera mounting angle
-        # and natural wrist rotation during signing.
-        if self.max_rotation_deg > 0 and torch.rand(1).item() < 0.5:
-            angle = (torch.rand(1).item() * 2 - 1) * self.max_rotation_deg
-            angle_rad = angle * (3.141592653589793 / 180.0)
-            cos_a = float(np.cos(angle_rad))
-            sin_a = float(np.sin(angle_rad))
-            # Affine rotation matrix (2x3) for grid_sample
+        # Random rotation + translation via a single affine transform.
+        # Rotation handles camera mounting angle and wrist tilt.
+        # Translation handles the hand not being centred in the GenX320 FOV.
+        apply_rot = self.max_rotation_deg > 0 and torch.rand(1).item() < 0.5
+        apply_trans = self.max_translate > 0 and torch.rand(1).item() < 0.5
+        if apply_rot or apply_trans:
+            if apply_rot:
+                angle = (torch.rand(1).item() * 2 - 1) * self.max_rotation_deg
+                angle_rad = angle * (3.141592653589793 / 180.0)
+                cos_a = float(np.cos(angle_rad))
+                sin_a = float(np.sin(angle_rad))
+            else:
+                cos_a, sin_a = 1.0, 0.0
+
+            tx = (torch.rand(1).item() * 2 - 1) * self.max_translate if apply_trans else 0.0
+            ty = (torch.rand(1).item() * 2 - 1) * self.max_translate if apply_trans else 0.0
+
             theta = torch.tensor(
-                [[cos_a, -sin_a, 0.0],
-                 [sin_a,  cos_a, 0.0]],
+                [[cos_a, -sin_a, tx],
+                 [sin_a,  cos_a, ty]],
                 dtype=tensor.dtype,
             ).unsqueeze(0)
             grid = F.affine_grid(theta, [1, C, H, W], align_corners=False)
@@ -123,11 +138,29 @@ class EventFrameAugment:
                 align_corners=False,
             ).squeeze(0)
 
+        # Random contrast scaling – simulates the GenX320's different
+        # contrast sensitivity (6.3μm vs 18.5μm pixels → different event
+        # counts for the same brightness change).
+        if self.contrast_range != (1.0, 1.0) and torch.rand(1).item() < 0.5:
+            lo, hi = self.contrast_range
+            factor = lo + torch.rand(1).item() * (hi - lo)
+            tensor = tensor * factor
+
         # Random event dropout – zero out a fraction of pixels to simulate
         # sparser event patterns (GenX320 spreads events over more pixels).
         if self.event_dropout > 0 and torch.rand(1).item() < 0.5:
             mask = torch.rand(1, H, W) > self.event_dropout
             tensor = tensor * mask.float()
+
+        # Random cutout – zero a rectangular patch, forcing the model to
+        # recognise gestures from partial views (hand at edge of frame,
+        # partial occlusion).
+        if self.cutout_ratio > 0 and torch.rand(1).item() < 0.3:
+            cut_h = int(H * self.cutout_ratio)
+            cut_w = int(W * self.cutout_ratio)
+            top = torch.randint(0, max(H - cut_h, 1) + 1, (1,)).item()
+            left = torch.randint(0, max(W - cut_w, 1) + 1, (1,)).item()
+            tensor[:, top:top + cut_h, left:left + cut_w] = 0
 
         # Additive Gaussian noise – simulates the different noise floor of
         # the GenX320 (smaller pixel pitch → different noise characteristics).
