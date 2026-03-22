@@ -153,8 +153,11 @@ def parse_args():
     p.add_argument("--checkpoint", required=True, help="Path to checkpoint_best.pt")
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=62078)
-    p.add_argument("--delta-t-us", type=int, default=200000,
-                   help="Camera integration window in microseconds (default 200000 = 200ms, matching ASL-DVS sample duration)")
+    p.add_argument("--delta-t-us", type=int, default=50000,
+                   help="Camera read chunk in microseconds (default 50000 = 50ms for responsive display)")
+    p.add_argument("--inference-window-us", type=int, default=200000,
+                   help="Sliding window duration for model inference in microseconds "
+                        "(default 200000 = 200ms, matching ASL-DVS training sample duration)")
     p.add_argument("--top-k", type=int, default=3)
     p.add_argument("--crop-to-training-aspect", action="store_true", default=True,
                    help="Centre-crop 320×320 to 4:3 aspect to match training data (default: on)")
@@ -548,7 +551,7 @@ def run_camera_loop(args, state: SharedState) -> None:
 
             if not hasattr(EventsIterator, "from_device"):
                 raise RuntimeError("EventsIterator.from_device is unavailable in this SDK.")
-            iterator = EventsIterator.from_device(device=device, delta_t=args.delta_t_us)
+            iterator = EventsIterator.from_device(device=device, delta_t=args.delta_t_us)  # fast chunks
 
         else:
             iterator = EventsIterator(**iterator_kwargs)
@@ -561,7 +564,13 @@ def run_camera_loop(args, state: SharedState) -> None:
         logger.exception("Camera initialization failed")
         return
 
-    window_s = args.delta_t_us / 1e6
+    chunk_s = args.delta_t_us / 1e6
+    infer_window_us = args.inference_window_us
+
+    # Rolling buffer: accumulate fast 50ms chunks into a sliding 200ms window.
+    # Display updates every chunk (~20 FPS); inference runs on the full window.
+    event_ring: list[np.ndarray] = []   # list of (N, 4) chunks
+    ring_duration_us = 0                # total time span in the ring
 
     try:
         for events_struct in iterator:
@@ -573,8 +582,40 @@ def run_camera_loop(args, state: SharedState) -> None:
             if n == 0:
                 continue
 
+            # Update display immediately with this chunk (responsive ~20 FPS).
+            frame_jpeg = render_events_jpeg(
+                events,
+                sensor_wh=GENX320_RESOLUTION,
+                quality=max(1, min(95, args.jpeg_quality)),
+            )
+            with state.lock:
+                state.latest_jpeg = frame_jpeg
+                state.last_update_s = time.time()
+
+            # Append chunk to rolling buffer.
+            event_ring.append(events)
+            if n > 0:
+                chunk_span = float(events[-1, 0] - events[0, 0])
+                ring_duration_us += max(chunk_span, args.delta_t_us)
+
+            # Evict old chunks to keep the ring at ~inference_window_us.
+            while len(event_ring) > 1 and ring_duration_us > infer_window_us * 1.5:
+                removed = event_ring.pop(0)
+                if len(removed) > 0:
+                    removed_span = float(removed[-1, 0] - removed[0, 0])
+                    ring_duration_us -= max(removed_span, args.delta_t_us)
+
+            # Run inference once the ring covers enough time.
+            if ring_duration_us < infer_window_us * 0.8:
+                continue
+
+            window_events = np.concatenate(event_ring, axis=0)
+            total_n = len(window_events)
+            if total_n == 0:
+                continue
+
             start = time.perf_counter()
-            pred = inferencer.predict(events)
+            pred = inferencer.predict(window_events)
             infer_ms = (time.perf_counter() - start) * 1000.0
 
             sorted_scores = sorted(
@@ -584,21 +625,13 @@ def run_camera_loop(args, state: SharedState) -> None:
             )
             topk = sorted_scores[:args.top_k]
 
-            frame_jpeg = render_events_jpeg(
-                events,
-                sensor_wh=GENX320_RESOLUTION,
-                quality=max(1, min(95, args.jpeg_quality)),
-            )
-
             now_s = time.time()
             with state.lock:
-                state.latest_jpeg = frame_jpeg
-                state.last_update_s = time.time()
                 state.prediction = pred["predicted_class"]
                 state.confidence = float(pred["confidence"])
                 state.topk = [(k, float(v)) for k, v in topk]
-                state.window_events = n
-                state.event_rate_eps = n / window_s
+                state.window_events = total_n
+                state.event_rate_eps = total_n / (ring_duration_us / 1e6) if ring_duration_us > 0 else 0.0
                 state.inference_ms = infer_ms
                 state.inference_fps = 1000.0 / infer_ms if infer_ms > 0 else 0.0
                 state.total_windows += 1
