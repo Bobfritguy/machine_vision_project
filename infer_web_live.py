@@ -185,6 +185,12 @@ def parse_args():
                         "Set to 50 (Europe/Asia) or 60 (Americas) to filter indoor lighting flicker.")
     p.add_argument("--jpeg-quality", type=int, default=70,
                    help="JPEG quality for stream frames (1-95, default 70).")
+    p.add_argument("--min-events", type=int, default=500,
+                   help="Minimum events in the inference window to run classification. "
+                        "Below this, the window is likely just noise. Default: 500.")
+    p.add_argument("--smoothing-alpha", type=float, default=0.4,
+                   help="EMA smoothing factor for prediction probabilities (0=full smoothing, "
+                        "1=no smoothing). Lower values suppress transient false positives. Default: 0.4.")
     p.add_argument("--spelling-threshold", type=float, default=0.85,
                    help="Confidence threshold [0,1] to accept letters into spelled text.")
     p.add_argument("--spelling-cooldown-s", type=float, default=0.8,
@@ -566,11 +572,15 @@ def run_camera_loop(args, state: SharedState) -> None:
 
     chunk_s = args.delta_t_us / 1e6
     infer_window_us = args.inference_window_us
+    smoothing_alpha = max(0.0, min(1.0, args.smoothing_alpha))
 
     # Rolling buffer: accumulate fast 50ms chunks into a sliding 200ms window.
     # Display updates every chunk (~20 FPS); inference runs on the full window.
     event_ring: list[np.ndarray] = []   # list of (N, 4) chunks
     ring_duration_us = 0                # total time span in the ring
+
+    # EMA-smoothed probability vector (initialised on first prediction).
+    smooth_probs: Optional[np.ndarray] = None
 
     try:
         for events_struct in iterator:
@@ -614,12 +624,47 @@ def run_camera_loop(args, state: SharedState) -> None:
             if total_n == 0:
                 continue
 
+            # Skip inference when event count is too low — likely just sensor
+            # noise, not an actual gesture. Without this the model is forced
+            # to classify noise as some letter, producing false positives.
+            if total_n < args.min_events:
+                with state.lock:
+                    state.window_events = total_n
+                    state.event_rate_eps = total_n / (ring_duration_us / 1e6) if ring_duration_us > 0 else 0.0
+                    state.prediction = "-"
+                    state.confidence = 0.0
+                    state.topk = []
+                    state.message = f"Too few events ({total_n} < {args.min_events})"
+                    # Decay smoothed probs toward uniform when idle, so stale
+                    # predictions don't linger.
+                    if smooth_probs is not None:
+                        uniform = np.ones_like(smooth_probs) / len(smooth_probs)
+                        smooth_probs = smoothing_alpha * uniform + (1 - smoothing_alpha) * smooth_probs
+                    # Reset streak so idle periods don't carry over.
+                    state.streak_letter = ""
+                    state.streak_count = 0
+                continue
+
             start = time.perf_counter()
             pred = inferencer.predict(window_events)
             infer_ms = (time.perf_counter() - start) * 1000.0
 
+            # EMA smoothing: blend current probabilities with history.
+            # This suppresses transient single-window false positives —
+            # a real gesture will sustain high probability across windows.
+            raw_probs = pred["probs"]
+            if smooth_probs is None:
+                smooth_probs = raw_probs.copy()
+            else:
+                smooth_probs = smoothing_alpha * raw_probs + (1 - smoothing_alpha) * smooth_probs
+
+            smoothed_idx = int(smooth_probs.argmax())
+            smoothed_conf = float(smooth_probs[smoothed_idx])
+            from utils import CLASSES as _CLS
+            smoothed_letter = _CLS[smoothed_idx]
+
             sorted_scores = sorted(
-                pred["scores"].items(),
+                [(c, float(smooth_probs[i])) for i, c in enumerate(_CLS)],
                 key=lambda kv: kv[1],
                 reverse=True,
             )
@@ -627,9 +672,9 @@ def run_camera_loop(args, state: SharedState) -> None:
 
             now_s = time.time()
             with state.lock:
-                state.prediction = pred["predicted_class"]
-                state.confidence = float(pred["confidence"])
-                state.topk = [(k, float(v)) for k, v in topk]
+                state.prediction = smoothed_letter
+                state.confidence = smoothed_conf
+                state.topk = topk
                 state.window_events = total_n
                 state.event_rate_eps = total_n / (ring_duration_us / 1e6) if ring_duration_us > 0 else 0.0
                 state.inference_ms = infer_ms
