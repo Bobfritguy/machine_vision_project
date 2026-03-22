@@ -227,8 +227,11 @@ def parse_args():
     p.add_argument("--simulate-genx320", action="store_true",
                    help="Rescale demo file coords to 320×320 before inference, "
                         "simulating GENX320 input")
-    p.add_argument("--crop-to-training-aspect", action="store_true",
-                   help="Centre-crop the 320×320 frame to 4:3 before accumulation")
+    p.add_argument("--crop-to-training-aspect", action="store_true", default=True,
+                   help="Centre-crop the 320×320 frame to 4:3 before accumulation (default: on)")
+    p.add_argument("--no-crop-to-training-aspect", dest="crop_to_training_aspect",
+                   action="store_false",
+                   help="Disable centre-crop; use full square sensor FOV")
     p.add_argument("--top-k", type=int, default=3)
     return p.parse_args()
 
