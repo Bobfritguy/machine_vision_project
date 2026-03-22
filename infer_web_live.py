@@ -153,10 +153,14 @@ def parse_args():
     p.add_argument("--checkpoint", required=True, help="Path to checkpoint_best.pt")
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=62078)
-    p.add_argument("--delta-t-us", type=int, default=50000,
-                   help="Camera integration window in microseconds (default 50000 = 50ms)")
+    p.add_argument("--delta-t-us", type=int, default=200000,
+                   help="Camera integration window in microseconds (default 200000 = 200ms, matching ASL-DVS sample duration)")
     p.add_argument("--top-k", type=int, default=3)
-    p.add_argument("--crop-to-training-aspect", action="store_true")
+    p.add_argument("--crop-to-training-aspect", action="store_true", default=True,
+                   help="Centre-crop 320×320 to 4:3 aspect to match training data (default: on)")
+    p.add_argument("--no-crop-to-training-aspect", dest="crop_to_training_aspect",
+                   action="store_false",
+                   help="Disable centre-crop; use full square sensor FOV")
     p.add_argument("--input-path", default="",
                    help="Metavision input path. Leave empty to open the live camera.")
     p.add_argument(
@@ -164,6 +168,18 @@ def parse_args():
         default="",
         help="Path to Metavision camera config JSON (same format as metavision_viewer --input-camera-config).",
     )
+    # -- Onboard noise filters (GenX320 / IMX636) --
+    p.add_argument("--stc-threshold-us", type=int, default=None,
+                   help="STC (Spatio-Temporal Contrast) filter threshold in microseconds. "
+                        "Events closer in time than this at the same pixel are suppressed. "
+                        "Recommended starting range: 2000-10000 us. Higher = more aggressive noise removal.")
+    p.add_argument("--erc-rate", type=int, default=None,
+                   help="ERC (Event Rate Controller) target max event rate in events/second. "
+                        "Limits total throughput to match DAVIS240C-like rates. "
+                        "Recommended: 2000000-5000000 (2-5 Mev/s).")
+    p.add_argument("--afk-frequency", type=int, default=None, choices=[50, 60],
+                   help="AFK (Anti-Flicker) filter frequency in Hz. "
+                        "Set to 50 (Europe/Asia) or 60 (Americas) to filter indoor lighting flicker.")
     p.add_argument("--jpeg-quality", type=int, default=70,
                    help="JPEG quality for stream frames (1-95, default 70).")
     p.add_argument("--spelling-threshold", type=float, default=0.85,
@@ -348,6 +364,93 @@ def make_app(state: SharedState) -> Flask:
     return app
 
 
+def configure_hw_filters(device, args, state: SharedState) -> None:
+    """
+    Configure the GenX320 / IMX636 onboard noise filters via HAL facilities.
+
+    These filters run on-chip and reduce noise before events reach the host,
+    which is critical for bridging the DAVIS240C→GenX320 sensor gap.
+    """
+    filter_log = []
+
+    # --- STC (Spatio-Temporal Contrast / Trail) filter ---
+    # Suppresses isolated noise events: if two events at the same pixel are
+    # closer together in time than the threshold, the second is kept and
+    # isolated (noise) events are dropped.
+    if args.stc_threshold_us is not None:
+        try:
+            noise_filter = device.get_i_noise_filter_module()
+            if noise_filter is not None:
+                # OpenEB ≥ 4.x API: I_NoiseFilterModule
+                try:
+                    noise_filter.enable_trail(args.stc_threshold_us)
+                    filter_log.append(f"STC trail filter enabled: {args.stc_threshold_us} us (via I_NoiseFilterModule)")
+                except AttributeError:
+                    # Older API variant
+                    noise_filter.set_stc_threshold(args.stc_threshold_us)
+                    noise_filter.enable_stc(True)
+                    filter_log.append(f"STC filter enabled: {args.stc_threshold_us} us (via set_stc_threshold)")
+            else:
+                raise AttributeError("get_i_noise_filter_module returned None")
+        except (AttributeError, RuntimeError):
+            try:
+                # Fallback: older HAL with separate trail filter module
+                trail = device.get_i_event_trail_filter_module()
+                if trail is not None:
+                    trail.set_threshold(args.stc_threshold_us)
+                    trail.enable(True)
+                    filter_log.append(f"STC trail filter enabled: {args.stc_threshold_us} us (via I_EventTrailFilterModule)")
+                else:
+                    filter_log.append("STC: trail filter facility not available on this device")
+            except (AttributeError, RuntimeError) as exc:
+                filter_log.append(f"STC: could not configure ({exc})")
+
+    # --- ERC (Event Rate Controller) ---
+    # Limits the maximum event rate to prevent sensor saturation and match
+    # the lower event rates typical of DAVIS240C training data.
+    if args.erc_rate is not None:
+        try:
+            erc = device.get_i_erc_module()
+            if erc is not None:
+                try:
+                    erc.set_cd_event_rate(args.erc_rate)
+                except AttributeError:
+                    erc.set_event_rate(args.erc_rate)
+                erc.enable(True)
+                filter_log.append(f"ERC enabled: target {args.erc_rate:,} events/s")
+            else:
+                raise AttributeError("get_i_erc_module returned None")
+        except (AttributeError, RuntimeError) as exc:
+            filter_log.append(f"ERC: could not configure ({exc})")
+
+    # --- AFK (Anti-Flicker) ---
+    # Filters periodic events caused by 50/60 Hz artificial lighting.
+    # The DAVIS240C training data may not contain this noise.
+    if args.afk_frequency is not None:
+        try:
+            afk = device.get_i_antiflicker_module()
+            if afk is not None:
+                try:
+                    afk.set_frequency_band(args.afk_frequency, args.afk_frequency)
+                except (AttributeError, TypeError):
+                    try:
+                        afk.set_frequency(args.afk_frequency)
+                    except AttributeError:
+                        afk.set_filtering_mode(args.afk_frequency)
+                afk.enable(True)
+                filter_log.append(f"AFK enabled: {args.afk_frequency} Hz")
+            else:
+                raise AttributeError("get_i_antiflicker_module returned None")
+        except (AttributeError, RuntimeError) as exc:
+            filter_log.append(f"AFK: could not configure ({exc})")
+
+    if filter_log:
+        msg = " | ".join(filter_log)
+        logger.info("HW filters: %s", msg)
+        with state.lock:
+            state.message = msg
+
+
 def run_camera_loop(args, state: SharedState) -> None:
     """
     Background loop:
@@ -384,33 +487,26 @@ def run_camera_loop(args, state: SharedState) -> None:
         state.status = "running"
         state.message = "Camera loop started."
 
+    hw_filters_requested = any([
+        args.stc_threshold_us is not None,
+        args.erc_rate is not None,
+        args.afk_frequency is not None,
+    ])
+    need_hal_device = args.input_camera_config or hw_filters_requested
+
     iterator_kwargs = {"input_path": args.input_path, "delta_t": args.delta_t_us}
     iterator = None
     device = None
     try:
-        if args.input_camera_config:
-            cfg_path = str(Path(args.input_camera_config).expanduser().resolve())
+        if need_hal_device:
+            # We need direct HAL device access for bias config and/or HW filters.
+            # Open device explicitly so we can configure it before streaming.
+            from metavision_core.event_io.raw_reader import initiate_device  # type: ignore
+            device = initiate_device(path=args.input_path)
 
-            # First try direct EventsIterator kwargs (works on some SDK builds).
-            iterator_candidates = [
-                {"input_camera_config": cfg_path},
-                {"camera_config": cfg_path},
-                {"bias_file": cfg_path},
-            ]
-            last_exc = None
-            for extra in iterator_candidates:
-                try:
-                    iterator = EventsIterator(**iterator_kwargs, **extra)
-                    with state.lock:
-                        state.message = f"Using camera config via iterator kwarg: {cfg_path}"
-                    break
-                except TypeError as exc:
-                    last_exc = exc
-
-            # If kwargs are not supported, apply biases through HAL device.
-            if iterator is None:
-                from metavision_core.event_io.raw_reader import initiate_device  # type: ignore
-                device = initiate_device(path=args.input_path)
+            # Apply bias config JSON if provided.
+            if args.input_camera_config:
+                cfg_path = str(Path(args.input_camera_config).expanduser().resolve())
                 i_ll_biases = device.get_i_ll_biases()
                 if i_ll_biases is None:
                     raise RuntimeError("Device does not expose i_ll_biases facility.")
@@ -444,11 +540,15 @@ def run_camera_loop(args, state: SharedState) -> None:
                         raise RuntimeError(f"Failed to apply bias {name}={value}.")
                     applied += 1
 
-                if not hasattr(EventsIterator, "from_device"):
-                    raise RuntimeError("EventsIterator.from_device is unavailable in this SDK.")
-                iterator = EventsIterator.from_device(device=device, delta_t=args.delta_t_us)
-                with state.lock:
-                    state.message = f"Applied {applied} biases from {cfg_path} via HAL device."
+                logger.info("Applied %d biases from %s", applied, cfg_path)
+
+            # Apply onboard HW filters (STC, ERC, AFK).
+            if hw_filters_requested:
+                configure_hw_filters(device, args, state)
+
+            if not hasattr(EventsIterator, "from_device"):
+                raise RuntimeError("EventsIterator.from_device is unavailable in this SDK.")
+            iterator = EventsIterator.from_device(device=device, delta_t=args.delta_t_us)
 
         else:
             iterator = EventsIterator(**iterator_kwargs)
