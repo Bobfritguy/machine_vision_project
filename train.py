@@ -61,12 +61,16 @@ class EventFrameAugment:
         event_dropout: float = 0.2,
         noise_std: float = 0.05,
         flip_lr: bool = False,
+        flip_ud: bool = True,
+        max_rotation_deg: float = 30.0,
     ):
         self.scale_range = scale_range
         self.aspect_jitter = aspect_jitter
         self.event_dropout = event_dropout
         self.noise_std = noise_std
         self.flip_lr = flip_lr
+        self.flip_ud = flip_ud
+        self.max_rotation_deg = max_rotation_deg
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         C, H, W = tensor.shape
@@ -75,6 +79,31 @@ class EventFrameAugment:
         # are mirror-ambiguous, e.g. d/g).
         if self.flip_lr and torch.rand(1).item() < 0.5:
             tensor = tensor.flip(-1)
+
+        # Random vertical flip – the DAVIS240C and GenX320 have opposite
+        # y-axis conventions, so the model must recognise gestures in both
+        # orientations. Applied 50% of the time so the model sees both.
+        if self.flip_ud and torch.rand(1).item() < 0.5:
+            tensor = tensor.flip(-2)
+
+        # Random rotation – makes the model robust to camera mounting angle
+        # and natural wrist rotation during signing.
+        if self.max_rotation_deg > 0 and torch.rand(1).item() < 0.5:
+            angle = (torch.rand(1).item() * 2 - 1) * self.max_rotation_deg
+            angle_rad = angle * (3.141592653589793 / 180.0)
+            cos_a = float(np.cos(angle_rad))
+            sin_a = float(np.sin(angle_rad))
+            # Affine rotation matrix (2x3) for grid_sample
+            theta = torch.tensor(
+                [[cos_a, -sin_a, 0.0],
+                 [sin_a,  cos_a, 0.0]],
+                dtype=tensor.dtype,
+            ).unsqueeze(0)
+            grid = F.affine_grid(theta, [1, C, H, W], align_corners=False)
+            tensor = F.grid_sample(
+                tensor.unsqueeze(0), grid, mode="bilinear",
+                padding_mode="zeros", align_corners=False,
+            ).squeeze(0)
 
         # Random scale + aspect ratio jitter via affine crop-and-resize.
         if torch.rand(1).item() < 0.5:
