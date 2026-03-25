@@ -30,7 +30,7 @@ from flask import Flask, Response, jsonify
 from PIL import Image
 
 from infer_live import GENX320_RESOLUTION, LiveInferencer
-from utils import get_logger
+from utils import CLASSES, get_logger
 
 logger = get_logger(__name__)
 
@@ -86,37 +86,50 @@ def structured_events_to_nx4(events_struct: np.ndarray) -> np.ndarray:
     raise ValueError(f"Unsupported event array shape/dtype: {events_struct.shape}, {events_struct.dtype}")
 
 
-def render_events_jpeg(events_nx4: np.ndarray, sensor_wh: tuple[int, int], quality: int) -> bytes:
+class EventDisplay:
     """
-    Render a color event frame as JPEG bytes:
-      - red channel: positive events
-      - blue channel: negative events
+    Persistent event display with temporal decay.
+
+    New events appear as bright white, then fade to grey over successive
+    frames, against a black background. Both polarities are rendered
+    identically (greyscale).
     """
-    W, H = sensor_wh
-    pos = np.zeros((H, W), dtype=np.float32)
-    neg = np.zeros((H, W), dtype=np.float32)
 
-    x = events_nx4[:, 1].astype(np.int32).clip(0, W - 1)
-    y = events_nx4[:, 2].astype(np.int32).clip(0, H - 1)
-    p = events_nx4[:, 3]
+    def __init__(self, sensor_wh: tuple[int, int], decay: float = 0.6):
+        W, H = sensor_wh
+        self.W = W
+        self.H = H
+        # Persistent float32 accumulator — values in [0, 1].
+        self.canvas = np.zeros((H, W), dtype=np.float32)
+        self.decay = decay
 
-    pos_mask = p > 0
-    neg_mask = ~pos_mask
-    np.add.at(pos, (y[pos_mask], x[pos_mask]), 1.0)
-    np.add.at(neg, (y[neg_mask], x[neg_mask]), 1.0)
+    def update(self, events_nx4: np.ndarray, quality: int) -> bytes:
+        """
+        Accumulate new events and render a JPEG frame.
 
-    pos = np.log1p(pos)
-    neg = np.log1p(neg)
+        Each call first decays the existing canvas (bright → grey → black),
+        then stamps new events as white.
+        """
+        # Decay existing pixels toward black.
+        self.canvas *= self.decay
 
-    scale = max(float(pos.max()), float(neg.max()), 1e-6)
-    rgb = np.zeros((H, W, 3), dtype=np.uint8)
-    rgb[..., 0] = np.clip((pos / scale) * 255.0, 0, 255).astype(np.uint8)
-    rgb[..., 2] = np.clip((neg / scale) * 255.0, 0, 255).astype(np.uint8)
+        # Stamp new events (both polarities) as bright white.
+        if len(events_nx4) > 0:
+            x = events_nx4[:, 1].astype(np.int32).clip(0, self.W - 1)
+            y = events_nx4[:, 2].astype(np.int32).clip(0, self.H - 1)
+            # Use event counts with log1p so dense areas are brighter.
+            counts = np.zeros((self.H, self.W), dtype=np.float32)
+            np.add.at(counts, (y, x), 1.0)
+            counts = np.log1p(counts)
+            scale = max(float(counts.max()), 1e-6)
+            # Merge new events into canvas — take the brighter of old and new.
+            self.canvas = np.maximum(self.canvas, counts / scale)
 
-    img = Image.fromarray(rgb, mode="RGB")
-    buff = BytesIO()
-    img.save(buff, format="JPEG", quality=quality, optimize=False)
-    return buff.getvalue()
+        grey = np.clip(self.canvas * 255.0, 0, 255).astype(np.uint8)
+        img = Image.fromarray(grey, mode="L")
+        buff = BytesIO()
+        img.save(buff, format="JPEG", quality=quality, optimize=False)
+        return buff.getvalue()
 
 
 @dataclass
@@ -574,6 +587,9 @@ def run_camera_loop(args, state: SharedState) -> None:
     infer_window_us = args.inference_window_us
     smoothing_alpha = max(0.0, min(1.0, args.smoothing_alpha))
 
+    # Persistent event display with temporal decay.
+    display = EventDisplay(sensor_wh=GENX320_RESOLUTION, decay=0.6)
+
     # Rolling buffer: accumulate fast 50ms chunks into a sliding 200ms window.
     # Display updates every chunk (~20 FPS); inference runs on the full window.
     event_ring: list[np.ndarray] = []   # list of (N, 4) chunks
@@ -593,9 +609,8 @@ def run_camera_loop(args, state: SharedState) -> None:
                 continue
 
             # Update display immediately with this chunk (responsive ~20 FPS).
-            frame_jpeg = render_events_jpeg(
+            frame_jpeg = display.update(
                 events,
-                sensor_wh=GENX320_RESOLUTION,
                 quality=max(1, min(95, args.jpeg_quality)),
             )
             with state.lock:
@@ -621,8 +636,6 @@ def run_camera_loop(args, state: SharedState) -> None:
 
             window_events = np.concatenate(event_ring, axis=0)
             total_n = len(window_events)
-            if total_n == 0:
-                continue
 
             # Skip inference when event count is too low — likely just sensor
             # noise, not an actual gesture. Without this the model is forced
@@ -660,11 +673,10 @@ def run_camera_loop(args, state: SharedState) -> None:
 
             smoothed_idx = int(smooth_probs.argmax())
             smoothed_conf = float(smooth_probs[smoothed_idx])
-            from utils import CLASSES as _CLS
-            smoothed_letter = _CLS[smoothed_idx]
+            smoothed_letter = CLASSES[smoothed_idx]
 
             sorted_scores = sorted(
-                [(c, float(smooth_probs[i])) for i, c in enumerate(_CLS)],
+                [(c, float(smooth_probs[i])) for i, c in enumerate(CLASSES)],
                 key=lambda kv: kv[1],
                 reverse=True,
             )
