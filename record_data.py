@@ -27,11 +27,27 @@ Output structure (mirrors ASL-DVS):
         b_0001.npy
         ...
 
+Web Viewfinder
+--------------
+Optionally enable a live web interface to preview camera feed before recording:
+    python record_data.py --web --web-port 62079
+
+Then open http://localhost:62079 to see:
+    - Live event-frame visualization
+    - Current event count and event rate
+    - Recording status
+
+The web interface runs in background and doesn't interfere with CLI recording control.
+
 Usage
 -----
     python record_data.py --out datasets/genx320_recorded \\
         --input-camera-config bias.json \\
         --samples-per-burst 20 --sample-duration-ms 200
+
+    # With web viewfinder:
+    python record_data.py --web --out datasets/genx320_recorded \\
+        --input-camera-config bias.json
 """
 
 from __future__ import annotations
@@ -39,16 +55,78 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
+from dataclasses import dataclass, field
+from io import BytesIO
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
+from flask import Flask, Response
+from PIL import Image, ImageDraw
 
 from utils import CLASSES, get_logger
 
 logger = get_logger(__name__)
 
 GENX320_RESOLUTION = (320, 320)
+
+
+class EventDisplay:
+    """
+    Persistent event display with temporal decay.
+
+    New events appear as bright white, then fade to grey over successive
+    frames, against a black background. Both polarities are rendered
+    identically (greyscale).
+    """
+
+    def __init__(self, sensor_wh: tuple[int, int], decay: float = 0.6):
+        W, H = sensor_wh
+        self.W = W
+        self.H = H
+        # Persistent float32 accumulator — values in [0, 1].
+        self.canvas = np.zeros((H, W), dtype=np.float32)
+        self.decay = decay
+
+    def update(self, events_nx4: np.ndarray, quality: int) -> bytes:
+        """
+        Accumulate new events and render a JPEG frame.
+
+        Each call first decays the existing canvas (bright → grey → black),
+        then stamps new events as white.
+        """
+        # Decay existing pixels toward black.
+        self.canvas *= self.decay
+
+        # Stamp new events (both polarities) as bright white.
+        if len(events_nx4) > 0:
+            x = events_nx4[:, 1].astype(np.int32).clip(0, self.W - 1)
+            y = events_nx4[:, 2].astype(np.int32).clip(0, self.H - 1)
+            # Use event counts with log1p so dense areas are brighter.
+            counts = np.zeros((self.H, self.W), dtype=np.float32)
+            np.add.at(counts, (y, x), 1.0)
+            counts = np.log1p(counts)
+            scale = max(float(counts.max()), 1e-6)
+            # Merge new events into canvas — take the brighter of old and new.
+            self.canvas = np.maximum(self.canvas, counts / scale)
+
+        grey = np.clip(self.canvas * 255.0, 0, 255).astype(np.uint8)
+        img = Image.fromarray(grey, mode="L")
+
+        buff = BytesIO()
+        img.save(buff, format="JPEG", quality=quality, optimize=False)
+        return buff.getvalue()
+
+
+@dataclass
+class SharedState:
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    latest_jpeg: Optional[bytes] = None
+    status: str = "initializing"
+    window_events: int = 0
+    event_rate_eps: float = 0.0
 
 
 def resolve_events_iterator():
@@ -133,6 +211,15 @@ def parse_args():
     p.add_argument("--stc-threshold-us", type=int, default=None)
     p.add_argument("--erc-rate", type=int, default=None)
     p.add_argument("--afk-frequency", type=int, default=None, choices=[50, 60])
+    # Web viewfinder
+    p.add_argument("--web", action="store_true", default=False,
+                   help="Enable web viewfinder interface")
+    p.add_argument("--web-host", default="0.0.0.0",
+                   help="Web server host (default: 0.0.0.0)")
+    p.add_argument("--web-port", type=int, default=62079,
+                   help="Web server port (default: 62079)")
+    p.add_argument("--jpeg-quality", type=int, default=70,
+                   help="JPEG quality for stream frames (1-95, default 70)")
     return p.parse_args()
 
 
@@ -291,6 +378,32 @@ def main():
     iterator = setup_camera(args)
     print("Camera ready.\n")
 
+    # Initialize web viewfinder if enabled
+    state = None
+    display = None
+    web_thread = None
+    if args.web:
+        state = SharedState()
+        display = EventDisplay(GENX320_RESOLUTION)
+        state.status = "ready"
+        
+        app = make_app(state)
+        web_thread = threading.Thread(
+            target=lambda: app.run(host=args.web_host, port=args.web_port,
+                                   debug=False, use_reloader=False),
+            daemon=True
+        )
+        web_thread.start()
+        print(f"Web viewfinder started at http://{args.web_host}:{args.web_port}")
+
+        # Start camera loop in background thread
+        camera_thread = threading.Thread(
+            target=run_camera_loop,
+            args=(iterator, state, display, args),
+            daemon=True
+        )
+        camera_thread.start()
+
     # Figure out starting letter.
     if args.start_letter.lower() in CLASSES:
         cls_idx = CLASSES.index(args.start_letter.lower())
@@ -311,6 +424,9 @@ def main():
             class_dir = out_dir / cls
             existing = get_existing_count(class_dir)
 
+            if state:
+                state.status = f"ready for '{cls.upper()}'"
+
             print_status(cls, cls_idx, len(CLASSES), existing,
                          session_counts[cls])
 
@@ -326,6 +442,9 @@ def main():
                 if ch == ' ':
                     # Start recording burst.
                     next_idx = existing + session_counts[cls] + 1
+                    if state:
+                        state.status = f"recording '{cls.upper()}'"
+                    
                     print(f"\n  Recording {args.samples_per_burst} samples "
                           f"of '{cls.upper()}'...")
                     print(f"  Hold the gesture steady and move slightly.\n")
@@ -378,6 +497,159 @@ def _print_summary(session_counts: dict, out_dir: Path):
             print(f"  {cls.upper()}: {n} samples")
     print(f"  Total: {total} samples")
     print(f"{'='*60}")
+
+
+def run_camera_loop(iterator, state: SharedState, display: EventDisplay,
+                    args: argparse.Namespace) -> None:
+    """
+    Background thread: read events and update the display.
+    """
+    try:
+        frame_count = 0
+        last_t = None
+        event_count_this_frame = 0
+
+        for events_struct in iterator:
+            if events_struct is None or len(events_struct) == 0:
+                continue
+
+            events = structured_events_to_nx4(events_struct)
+            event_count_this_frame += len(events)
+
+            # Update display and metrics periodically
+            if frame_count % 5 == 0:  # Update display every 5 chunks
+                jpeg_data = display.update(events, args.jpeg_quality)
+                
+                # Calculate event rate
+                if last_t is not None and len(events) > 0:
+                    dt = (events[-1, 0] - last_t) / 1_000_000  # Convert to seconds
+                    if dt > 0:
+                        rate = event_count_this_frame / dt
+                    else:
+                        rate = 0
+                else:
+                    rate = 0
+
+                with state.lock:
+                    state.latest_jpeg = jpeg_data
+                    state.window_events = event_count_this_frame
+                    state.event_rate_eps = rate
+
+                event_count_this_frame = 0
+
+            if len(events) > 0:
+                last_t = events[-1, 0]
+
+            frame_count += 1
+
+    except Exception as exc:
+        logger.exception("Camera loop error: %s", exc)
+        with state.lock:
+            state.status = f"error: {exc}"
+
+
+def make_app(state: SharedState) -> Flask:
+    """Create Flask app for web viewfinder."""
+    app = Flask(__name__)
+
+    @app.route("/")
+    def index():
+        return """
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Record Data - Live Viewfinder</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; background: #111; color: #eee; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .panel { background: #1a1a1a; padding: 12px; border: 1px solid #333; border-radius: 8px; }
+    h1 { margin-top: 0; }
+    .feed-container { position: relative; width: 100%; margin-bottom: 16px; }
+    .feed-container img { width: 100%; display: block; border: 1px solid #333; background: #000; }
+    .stats { font-size: 0.9em; }
+    .stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #2b2b2b; }
+    .label { color: #bbb; }
+    .value { font-weight: 700; color: #7CFC8A; }
+    .status { padding: 8px; background: #0a0a0a; border-radius: 4px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Record Data - Live Viewfinder</h1>
+    <div class="panel">
+      <div class="feed-container">
+        <img id="feed" src="/stream.mjpg" />
+      </div>
+      <div class="status">
+        <div class="stat-row">
+          <span class="label">Status:</span>
+          <span class="value" id="status">initializing</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat-row">
+          <span class="label">Events in frame:</span>
+          <span id="events">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Event rate (events/s):</span>
+          <span id="rate">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function updateMetrics() {
+      try {
+        const resp = await fetch('/metrics');
+        const data = await resp.json();
+        document.getElementById('status').textContent = data.status;
+        document.getElementById('events').textContent = data.window_events;
+        document.getElementById('rate').textContent = Math.round(data.event_rate_eps);
+      } catch (e) {
+        console.error('Metrics fetch error:', e);
+      }
+    }
+    setInterval(updateMetrics, 500);
+  </script>
+</body>
+</html>
+"""
+
+    @app.route("/stream.mjpg")
+    def mjpeg_stream():
+        def generate():
+            boundary = b"--frame\r\n"
+            while True:
+                with state.lock:
+                    data = state.latest_jpeg
+                if data is None:
+                    time.sleep(0.02)
+                    continue
+                yield boundary
+                yield b"Content-Type: image/jpeg\r\n"
+                yield f"Content-Length: {len(data)}\r\n\r\n".encode("ascii")
+                yield data
+                yield b"\r\n"
+                time.sleep(0.02)
+
+        return Response(
+            generate(),
+            mimetype="multipart/x-mixed-replace; boundary=frame",
+        )
+
+    @app.route("/metrics")
+    def metrics():
+        with state.lock:
+            payload = {
+                "status": state.status,
+                "window_events": state.window_events,
+                "event_rate_eps": state.event_rate_eps,
+            }
+        return payload
+
+    return app
 
 
 if __name__ == "__main__":
