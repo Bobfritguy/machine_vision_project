@@ -26,8 +26,8 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from flask import Flask, Response, jsonify
-from PIL import Image
+from flask import Flask, Response, jsonify, request
+from PIL import Image, ImageDraw
 
 from infer_live import GENX320_RESOLUTION, LiveInferencer
 from utils import CLASSES, get_logger
@@ -103,12 +103,14 @@ class EventDisplay:
         self.canvas = np.zeros((H, W), dtype=np.float32)
         self.decay = decay
 
-    def update(self, events_nx4: np.ndarray, quality: int) -> bytes:
+    def update(self, events_nx4: np.ndarray, quality: int,
+               roi: Optional[tuple[int, int, int, int]] = None) -> bytes:
         """
         Accumulate new events and render a JPEG frame.
 
         Each call first decays the existing canvas (bright → grey → black),
-        then stamps new events as white.
+        then stamps new events as white. If an ROI is set, its border is
+        drawn on top of the frame.
         """
         # Decay existing pixels toward black.
         self.canvas *= self.decay
@@ -127,6 +129,13 @@ class EventDisplay:
 
         grey = np.clip(self.canvas * 255.0, 0, 255).astype(np.uint8)
         img = Image.fromarray(grey, mode="L")
+
+        # Draw ROI rectangle overlay if set.
+        if roi is not None:
+            x1, y1, x2, y2 = roi
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([x1, y1, x2, y2], outline=200, width=2)
+
         buff = BytesIO()
         img.save(buff, format="JPEG", quality=quality, optimize=False)
         return buff.getvalue()
@@ -159,6 +168,8 @@ class SharedState:
     last_commit_time_s: float = 0.0
     streak_letter: str = ""
     streak_count: int = 0
+    # ROI in sensor pixel coords (x1, y1, x2, y2) or None for full frame.
+    roi: Optional[tuple[int, int, int, int]] = None
 
 
 def parse_args():
@@ -221,7 +232,6 @@ def make_app(state: SharedState) -> Flask:
   <style>
     body { font-family: sans-serif; margin: 16px; background: #111; color: #eee; }
     .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-    img { width: 100%; border: 1px solid #333; background: #000; }
     .panel { background: #1a1a1a; padding: 12px; border: 1px solid #333; border-radius: 8px; }
     .big { font-size: 2rem; font-weight: 700; }
     .muted { color: #bbb; }
@@ -229,13 +239,29 @@ def make_app(state: SharedState) -> Flask:
     td { padding: 4px 0; border-bottom: 1px solid #2b2b2b; }
     .ok { color: #7CFC8A; }
     .warn { color: #ffcc66; }
+    .feed-container { position: relative; width: 100%; }
+    .feed-container img { width: 100%; display: block; border: 1px solid #333; background: #000; }
+    .feed-container canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    .roi-controls { margin-top: 6px; display: flex; gap: 6px; align-items: center; }
+    .roi-controls button { cursor: pointer; }
+    .roi-info { color: #bbb; font-size: 0.85em; }
   </style>
 </head>
 <body>
   <h2>X320 Live ASL Dashboard</h2>
   <div class="wrap">
     <div class="panel">
-      <img id="feed" src="/stream.mjpg" />
+      <div class="feed-container">
+        <img id="feed" src="/stream.mjpg" />
+        <canvas id="roi-canvas"></canvas>
+      </div>
+      <div class="roi-controls">
+        <button onclick="clearROI()">Clear ROI</button>
+        <span class="roi-info" id="roi-info">No ROI set — click and drag on feed to draw</span>
+      </div>
     </div>
     <div class="panel">
       <div>Status: <span id="status" class="muted">starting</span></div>
@@ -275,6 +301,97 @@ def make_app(state: SharedState) -> Flask:
       } catch (e) {}
     }
 
+    // --- ROI drawing ---
+    const roiCanvas = document.getElementById('roi-canvas');
+    const roiCtx = roiCanvas.getContext('2d');
+    const feedImg = document.getElementById('feed');
+    let drawing = false, startX = 0, startY = 0;
+    let currentROI = null;  // {x1, y1, x2, y2} normalised [0,1]
+
+    function resizeCanvas() {
+      roiCanvas.width = feedImg.clientWidth;
+      roiCanvas.height = feedImg.clientHeight;
+      drawROIOverlay();
+    }
+    feedImg.addEventListener('load', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
+
+    function getNorm(e) {
+      const r = roiCanvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)),
+        y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))
+      };
+    }
+
+    roiCanvas.addEventListener('mousedown', e => {
+      const p = getNorm(e);
+      startX = p.x; startY = p.y;
+      drawing = true;
+    });
+    roiCanvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const p = getNorm(e);
+      drawROIOverlay({
+        x1: Math.min(startX, p.x), y1: Math.min(startY, p.y),
+        x2: Math.max(startX, p.x), y2: Math.max(startY, p.y)
+      });
+    });
+    roiCanvas.addEventListener('mouseup', async e => {
+      if (!drawing) return;
+      drawing = false;
+      const p = getNorm(e);
+      const roi = {
+        x1: Math.min(startX, p.x), y1: Math.min(startY, p.y),
+        x2: Math.max(startX, p.x), y2: Math.max(startY, p.y)
+      };
+      // Ignore tiny accidental clicks (less than 3% of frame).
+      if ((roi.x2 - roi.x1) < 0.03 || (roi.y2 - roi.y1) < 0.03) return;
+      currentROI = roi;
+      drawROIOverlay(roi);
+      try {
+        await fetch('/roi/set', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(roi)
+        });
+      } catch (e) {}
+      updateROIInfo();
+    });
+
+    function drawROIOverlay(roi) {
+      roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+      const r = roi || currentROI;
+      if (!r) return;
+      const x = r.x1 * roiCanvas.width, y = r.y1 * roiCanvas.height;
+      const w = (r.x2 - r.x1) * roiCanvas.width, h = (r.y2 - r.y1) * roiCanvas.height;
+      // Semi-transparent dark overlay outside ROI.
+      roiCtx.fillStyle = 'rgba(0,0,0,0.4)';
+      roiCtx.fillRect(0, 0, roiCanvas.width, roiCanvas.height);
+      roiCtx.clearRect(x, y, w, h);
+      // Bright border.
+      roiCtx.strokeStyle = '#00ff88';
+      roiCtx.lineWidth = 2;
+      roiCtx.strokeRect(x, y, w, h);
+    }
+
+    async function clearROI() {
+      currentROI = null;
+      roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+      try { await fetch('/roi/clear', { method: 'POST' }); } catch (e) {}
+      updateROIInfo();
+    }
+
+    function updateROIInfo() {
+      const el = document.getElementById('roi-info');
+      if (currentROI) {
+        const r = currentROI;
+        el.textContent = `ROI: (${(r.x1*320)|0}, ${(r.y1*320)|0}) to (${(r.x2*320)|0}, ${(r.y2*320)|0})`;
+      } else {
+        el.textContent = 'No ROI set \u2014 click and drag on feed to draw';
+      }
+    }
+
     async function tick() {
       try {
         const m = await fetch('/metrics').then(r => r.json());
@@ -293,6 +410,16 @@ def make_app(state: SharedState) -> Flask:
         document.getElementById('recstate').textContent =
           m.recording_active ? (m.recording_paused ? 'paused' : 'recording') : 'idle';
         document.getElementById('spelled').textContent = m.spelled_text || '-';
+        // Sync ROI from server (in case another client set it).
+        if (m.roi && !drawing) {
+          currentROI = {x1: m.roi[0]/320, y1: m.roi[1]/320, x2: m.roi[2]/320, y2: m.roi[3]/320};
+          drawROIOverlay();
+          updateROIInfo();
+        } else if (!m.roi && !drawing && currentROI) {
+          currentROI = null;
+          roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+          updateROIInfo();
+        }
       } catch (e) {}
     }
     setInterval(tick, 500);
@@ -347,6 +474,7 @@ def make_app(state: SharedState) -> Flask:
                 "spelling_threshold": state.spelling_threshold,
                 "spelling_cooldown_s": state.spelling_cooldown_s,
                 "spelling_min_streak": state.spelling_min_streak,
+                "roi": list(state.roi) if state.roi else None,
             }
         return jsonify(payload)
 
@@ -375,6 +503,30 @@ def make_app(state: SharedState) -> Flask:
             state.last_commit_time_s = 0.0
             state.streak_letter = ""
             state.streak_count = 0
+        return jsonify({"ok": True})
+
+    @app.route("/roi/set", methods=["POST"])
+    def roi_set():
+        """Set ROI from normalised [0,1] coordinates sent by the frontend."""
+        data = json.loads(request.get_data())
+        W, H = GENX320_RESOLUTION
+        x1 = int(round(float(data["x1"]) * W))
+        y1 = int(round(float(data["y1"]) * H))
+        x2 = int(round(float(data["x2"]) * W))
+        y2 = int(round(float(data["y2"]) * H))
+        # Clamp to sensor bounds and ensure x1<x2, y1<y2.
+        x1, x2 = max(0, min(x1, x2)), min(W - 1, max(x1, x2))
+        y1, y2 = max(0, min(y1, y2)), min(H - 1, max(y1, y2))
+        with state.lock:
+            state.roi = (x1, y1, x2, y2)
+        logger.info("ROI set: (%d, %d) -> (%d, %d)", x1, y1, x2, y2)
+        return jsonify({"ok": True, "roi": [x1, y1, x2, y2]})
+
+    @app.route("/roi/clear", methods=["POST"])
+    def roi_clear():
+        with state.lock:
+            state.roi = None
+        logger.info("ROI cleared")
         return jsonify({"ok": True})
 
     return app
@@ -603,9 +755,13 @@ def run_camera_loop(args, state: SharedState) -> None:
                 continue
 
             # Update display immediately with this chunk (responsive ~20 FPS).
+            # All events are shown; the ROI rectangle is drawn on top.
+            with state.lock:
+                current_roi = state.roi
             frame_jpeg = display.update(
                 events,
                 quality=max(1, min(95, args.jpeg_quality)),
+                roi=current_roi,
             )
             with state.lock:
                 state.latest_jpeg = frame_jpeg
@@ -629,6 +785,17 @@ def run_camera_loop(args, state: SharedState) -> None:
                 continue
 
             window_events = np.concatenate(event_ring, axis=0)
+
+            # If an ROI is set, filter to only events inside it for inference.
+            # The display still shows all events — only the model input is cropped.
+            if current_roi is not None:
+                rx1, ry1, rx2, ry2 = current_roi
+                mask = (
+                    (window_events[:, 1] >= rx1) & (window_events[:, 1] <= rx2) &
+                    (window_events[:, 2] >= ry1) & (window_events[:, 2] <= ry2)
+                )
+                window_events = window_events[mask]
+
             total_n = len(window_events)
             if total_n < 500:
                 # Too few events — likely just noise, skip inference.
