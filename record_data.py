@@ -127,6 +127,7 @@ class SharedState:
     status: str = "initializing"
     window_events: int = 0
     event_rate_eps: float = 0.0
+    frozen: bool = False  # Freeze display during recording
 
 
 def resolve_events_iterator():
@@ -381,7 +382,6 @@ def main():
     # Initialize web viewfinder if enabled
     state = None
     display = None
-    web_thread = None
     if args.web:
         state = SharedState()
         display = EventDisplay(GENX320_RESOLUTION)
@@ -395,14 +395,6 @@ def main():
         )
         web_thread.start()
         print(f"Web viewfinder started at http://{args.web_host}:{args.web_port}")
-
-        # Start camera loop in background thread
-        camera_thread = threading.Thread(
-            target=run_camera_loop,
-            args=(iterator, state, display, args),
-            daemon=True
-        )
-        camera_thread.start()
 
     # Figure out starting letter.
     if args.start_letter.lower() in CLASSES:
@@ -432,6 +424,9 @@ def main():
 
             # Wait for keypress.
             while True:
+                # Update display while waiting for input
+                update_display_from_iterator(iterator, state, display, args)
+                
                 ch = sys.stdin.read(1)
 
                 if ch == 'q':
@@ -444,6 +439,7 @@ def main():
                     next_idx = existing + session_counts[cls] + 1
                     if state:
                         state.status = f"recording '{cls.upper()}'"
+                        state.frozen = True  # Freeze display during recording
                     
                     print(f"\n  Recording {args.samples_per_burst} samples "
                           f"of '{cls.upper()}'...")
@@ -456,6 +452,9 @@ def main():
                         gap_ms=args.gap_ms,
                         delta_t_us=args.delta_t_us,
                     )
+
+                    if state:
+                        state.frozen = False  # Unfreeze display after recording
 
                     for i, sample in enumerate(samples):
                         idx = next_idx + i
@@ -499,53 +498,55 @@ def _print_summary(session_counts: dict, out_dir: Path):
     print(f"{'='*60}")
 
 
-def run_camera_loop(iterator, state: SharedState, display: EventDisplay,
-                    args: argparse.Namespace) -> None:
+def update_display_from_iterator(iterator, state: SharedState, display: EventDisplay,
+                                  args: argparse.Namespace, timeout_iterations: int = 5) -> None:
     """
-    Background thread: read events and update the display.
+    Read a few event chunks from iterator and update the display.
+    Used to show live feed while waiting for user input.
+    Skips updates if display is frozen.
     """
-    try:
-        frame_count = 0
-        last_t = None
-        event_count_this_frame = 0
+    if not state or not display:
+        return
+    
+    last_t = None
+    event_count = 0
+    
+    for i, events_struct in enumerate(iterator):
+        if i >= timeout_iterations:
+            break
+            
+        if events_struct is None or len(events_struct) == 0:
+            continue
 
-        for events_struct in iterator:
-            if events_struct is None or len(events_struct) == 0:
-                continue
+        events = structured_events_to_nx4(events_struct)
+        event_count += len(events)
 
-            events = structured_events_to_nx4(events_struct)
-            event_count_this_frame += len(events)
-
-            # Update display and metrics periodically
-            if frame_count % 5 == 0:  # Update display every 5 chunks
-                jpeg_data = display.update(events, args.jpeg_quality)
-                
-                # Calculate event rate
-                if last_t is not None and len(events) > 0:
-                    dt = (events[-1, 0] - last_t) / 1_000_000  # Convert to seconds
-                    if dt > 0:
-                        rate = event_count_this_frame / dt
-                    else:
-                        rate = 0
+        # Skip display update if frozen (during recording)
+        with state.lock:
+            is_frozen = state.frozen
+        
+        if not is_frozen:
+            # Update display
+            jpeg_data = display.update(events, args.jpeg_quality)
+            
+            # Calculate event rate
+            if last_t is not None and len(events) > 0:
+                dt = (events[-1, 0] - last_t) / 1_000_000  # Convert to seconds
+                if dt > 0:
+                    rate = event_count / dt
                 else:
                     rate = 0
+            else:
+                rate = 0
 
-                with state.lock:
-                    state.latest_jpeg = jpeg_data
-                    state.window_events = event_count_this_frame
-                    state.event_rate_eps = rate
+            with state.lock:
+                state.latest_jpeg = jpeg_data
+                state.window_events = event_count
+                state.event_rate_eps = rate
 
-                event_count_this_frame = 0
+        if len(events) > 0:
+            last_t = events[-1, 0]
 
-            if len(events) > 0:
-                last_t = events[-1, 0]
-
-            frame_count += 1
-
-    except Exception as exc:
-        logger.exception("Camera loop error: %s", exc)
-        with state.lock:
-            state.status = f"error: {exc}"
 
 
 def make_app(state: SharedState) -> Flask:
