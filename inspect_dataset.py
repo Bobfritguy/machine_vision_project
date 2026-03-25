@@ -305,8 +305,6 @@ def main():
     # Generate visualization of random samples
     print(f"\n{'='*60}")
     print("Generating sample visualizations...")
-    viz_dir = root / "sample_visualizations"
-    viz_dir.mkdir(exist_ok=True)
 
     if has_splits:
         # ASL format: visualize LR and HR
@@ -367,7 +365,7 @@ def main():
                     row, col = idx // n_cols, idx % n_cols
                     grid.paste(img, (col * width, row * height))
                 
-                out_file = viz_dir / f"{split_name}_{res}.png"
+                out_file = root / f"{split_name}_{res}_samples.png"
                 grid.save(out_file)
                 print(f"  Saved: {out_file.name}")
     else:
@@ -424,11 +422,11 @@ def main():
                     row, col = idx // n_cols, idx % n_cols
                     grid.paste(img, (col * width, row * height))
                 
-                out_file = viz_dir / "samples.png"
+                out_file = root / f"{root.name}_samples.png"
                 grid.save(out_file)
                 print(f"  Saved: {out_file.name}")
     
-    print(f"Visualizations saved → {viz_dir.resolve()}")
+    print(f"Visualization saved → {root / (f'{root.name}_samples.png')}")
 
 
 
