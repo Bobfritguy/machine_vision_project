@@ -806,8 +806,11 @@ def run_camera_loop(args, state: SharedState) -> None:
                 )
                 window_events = window_events[mask].copy()
                 # Remap: shift origin to ROI corner, then scale to full sensor res.
-                window_events[:, 1] = (window_events[:, 1] - rx1) * (W_sensor / roi_w)
-                window_events[:, 2] = (window_events[:, 2] - ry1) * (H_sensor / roi_h)
+                # Clamp to [0, max-1] so coordinates stay within valid pixel bounds.
+                window_events[:, 1] = np.clip(
+                    (window_events[:, 1] - rx1) * (W_sensor / roi_w), 0, W_sensor - 1)
+                window_events[:, 2] = np.clip(
+                    (window_events[:, 2] - ry1) * (H_sensor / roi_h), 0, H_sensor - 1)
 
             total_n = len(window_events)
 
