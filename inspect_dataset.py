@@ -36,7 +36,7 @@ from pathlib import Path
 import random
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 
 def render_events_to_image(events: np.ndarray, width: int, height: int) -> np.ndarray:
@@ -336,6 +336,16 @@ def main():
                     img_array = visualize_random_sample(class_dir, width, height)
                     if img_array is not None:
                         img = Image.fromarray(img_array)
+                        # Add class label to top-right
+                        draw = ImageDraw.Draw(img)
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        # Draw white text with black outline for visibility
+                        text = cls.upper()
+                        draw.text((width - len(text) * 6 - 4, 4), text, fill=(255, 255, 255), font=font)
+                        
                         row, col = idx // n_cols, idx % n_cols
                         grid.paste(img, (col * width, row * height))
                 
@@ -363,6 +373,16 @@ def main():
                     img_array = visualize_random_sample(class_dir, width, height)
                     if img_array is not None:
                         img = Image.fromarray(img_array)
+                        # Add class label to top-right
+                        draw = ImageDraw.Draw(img)
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        # Draw white text with black outline for visibility
+                        text = cls.upper()
+                        draw.text((width - len(text) * 6 - 4, 4), text, fill=(255, 255, 255), font=font)
+                        
                         row, col = idx // n_cols, idx % n_cols
                         grid.paste(img, (col * width, row * height))
                         print(f"  Added {cls}")
