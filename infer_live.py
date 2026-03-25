@@ -215,6 +215,7 @@ class LiveInferencer:
             "predicted_class": predicted,
             "confidence": confidence,
             "scores": {cls: float(probs[i]) for i, cls in enumerate(CLASSES)},
+            "probs": probs.cpu().numpy(),  # raw numpy array for smoothing
         }
 
     def _centre_crop_events(self, events: np.ndarray) -> np.ndarray:
