@@ -308,18 +308,17 @@ def setup_camera(args):
     return iterator
 
 
-def record_burst(iterator, n_samples: int, sample_duration_ms: int,
+def record_burst(event_queue: queue.Queue, n_samples: int, sample_duration_ms: int,
                  gap_ms: int, delta_t_us: int,
                  state: Optional[SharedState] = None,
                  display: Optional[EventDisplay] = None,
                  args: Optional[argparse.Namespace] = None) -> list[np.ndarray]:
     """
-    Record a burst of n_samples from the camera iterator.
-
+    Record a burst of n_samples from the event queue.
+    Reads events that were buffered while we were waiting.
+    
     Returns a list of (N, 4) float32 arrays, one per sample.
     Timestamps within each sample are in microseconds from the camera.
-    Optionally updates the display during recording.
-    Background thread pauses when frozen, so iterator gets fresh events.
     """
     sample_duration_us = sample_duration_ms * 1000
     gap_us = gap_ms * 1000
@@ -330,11 +329,20 @@ def record_burst(iterator, n_samples: int, sample_duration_ms: int,
     in_gap = False
     gap_start_t = None
 
-    for events_struct in iterator:
-        if events_struct is None or len(events_struct) == 0:
+    while len(samples) < n_samples:
+        try:
+            # Get events from queue with timeout
+            events = event_queue.get(timeout=1.0)
+        except queue.Empty:
             continue
 
-        events = structured_events_to_nx4(events_struct)
+        if events is None:
+            # End of stream
+            break
+        
+        if len(events) == 0:
+            continue
+
         chunk_t_min = float(events[0, 0])
         chunk_t_max = float(events[-1, 0])
 
@@ -392,6 +400,9 @@ def main():
     iterator = setup_camera(args)
     print("Camera ready.\n")
 
+    # Create event queue for threading - one thread reads camera, multiple threads read from queue
+    event_queue = queue.Queue(maxsize=200)
+
     # Initialize web viewfinder if enabled
     state = None
     display = None
@@ -409,10 +420,10 @@ def main():
         web_thread.start()
         print(f"Web viewfinder started at http://{args.web_host}:{args.web_port}")
 
-        # Start background camera thread for display updates
+        # Start background camera thread - this is the ONLY thread reading the iterator
         camera_thread = threading.Thread(
             target=run_camera_loop,
-            args=(iterator, None, state, display, args),
+            args=(iterator, event_queue, state, display, args),
             daemon=True
         )
         camera_thread.start()
@@ -445,6 +456,10 @@ def main():
 
             # Wait for keypress.
             while True:
+                # Update display from queue events while waiting
+                if state and display:
+                    update_display_from_queue(event_queue, state, display, args)
+                
                 ch = sys.stdin.read(1)
 
                 if ch == 'q':
@@ -464,7 +479,7 @@ def main():
                     print(f"  Hold the gesture steady and move slightly.\n")
 
                     samples = record_burst(
-                        iterator,
+                        event_queue,
                         n_samples=args.samples_per_burst,
                         sample_duration_ms=args.sample_duration_ms,
                         gap_ms=args.gap_ms,
@@ -520,54 +535,81 @@ def _print_summary(session_counts: dict, out_dir: Path):
     print(f"{'='*60}")
 
 
-def run_camera_loop(iterator, _unused, state: SharedState,
+def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
                     display: EventDisplay, args: argparse.Namespace) -> None:
     """
-    Background thread: continuously read events from camera and update display.
-    Pauses reading when frozen so record_burst gets fresh events.
+    Background thread: read from camera iterator once and put all events into queue.
+    This is the ONLY thread that iterates the camera.
+    Both display and recording read from the queue.
     """
     try:
-        last_t = None
-        total_events = 0
-        
         for events_struct in iterator:
             if events_struct is None or len(events_struct) == 0:
                 continue
 
             events = structured_events_to_nx4(events_struct)
-            total_events += len(events)
-
-            # Check if frozen - if so, skip this chunk
-            with state.lock:
-                is_frozen = state.frozen
-            
-            if is_frozen:
-                # Pause during recording - let record_burst get fresh events
-                continue
-
-            # Update display on every chunk
-            if display:
-                jpeg_data = display.update(events, args.jpeg_quality)
-                
-                # Calculate event rate
-                if last_t is not None and len(events) > 0:
-                    dt = (events[-1, 0] - last_t) / 1_000_000
-                    rate = total_events / dt if dt > 0 else 0
-                else:
-                    rate = 0
-
-                with state.lock:
-                    state.latest_jpeg = jpeg_data
-                    state.window_events = len(events)
-                    state.event_rate_eps = rate
-
-            if len(events) > 0:
-                last_t = events[-1, 0]
+            # Put into queue for both display and recording
+            event_queue.put(events)
 
     except Exception as exc:
         logger.exception("Camera loop error: %s", exc)
         with state.lock:
             state.status = f"error: {exc}"
+    finally:
+        # Signal end of stream
+        event_queue.put(None)
+
+
+def update_display_from_queue(event_queue: queue.Queue, state: SharedState,
+                              display: EventDisplay, args: argparse.Namespace) -> None:
+    """
+    Update display from queued events (called periodically from main thread).
+    Processes events from queue to update the display.
+    """
+    if not state or not display:
+        return
+    
+    last_t = None
+    event_count = 0
+    
+    # Process all available events from queue without blocking
+    while True:
+        try:
+            events = event_queue.get_nowait()
+        except queue.Empty:
+            break
+        
+        if events is None:
+            # End of stream marker
+            return
+        
+        if len(events) == 0:
+            continue
+        
+        event_count += len(events)
+        
+        # Check if frozen
+        with state.lock:
+            is_frozen = state.frozen
+        
+        if not is_frozen:
+            # Update display
+            jpeg_data = display.update(events, args.jpeg_quality)
+            
+            # Calculate event rate
+            if last_t is not None and len(events) > 0:
+                dt = (events[-1, 0] - last_t) / 1_000_000
+                rate = event_count / dt if dt > 0 else 0
+            else:
+                rate = 0
+
+            with state.lock:
+                state.latest_jpeg = jpeg_data
+                state.window_events = len(events)
+                state.event_rate_eps = rate
+
+        if len(events) > 0:
+            last_t = events[-1, 0]
 
 
 def make_app(state: SharedState) -> Flask:
