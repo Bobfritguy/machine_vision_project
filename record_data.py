@@ -308,12 +308,16 @@ def setup_camera(args):
 
 
 def record_burst(iterator, n_samples: int, sample_duration_ms: int,
-                 gap_ms: int, delta_t_us: int) -> list[np.ndarray]:
+                 gap_ms: int, delta_t_us: int,
+                 state: Optional[SharedState] = None,
+                 display: Optional[EventDisplay] = None,
+                 args: Optional[argparse.Namespace] = None) -> list[np.ndarray]:
     """
     Record a burst of n_samples from the camera.
 
     Returns a list of (N, 4) float32 arrays, one per sample.
     Timestamps within each sample are in microseconds from the camera.
+    Optionally updates the display during recording.
     """
     sample_duration_us = sample_duration_ms * 1000
     gap_us = gap_ms * 1000
@@ -331,6 +335,13 @@ def record_burst(iterator, n_samples: int, sample_duration_ms: int,
         events = structured_events_to_nx4(events_struct)
         chunk_t_min = float(events[0, 0])
         chunk_t_max = float(events[-1, 0])
+
+        # Update display during recording if enabled
+        if state and display and args and not state.frozen:
+            jpeg_data = display.update(events, args.jpeg_quality)
+            with state.lock:
+                state.latest_jpeg = jpeg_data
+                state.window_events = len(samples) * (sample_duration_ms // 10)
 
         if in_gap:
             # Wait for gap to elapse before starting next sample.
@@ -424,9 +435,6 @@ def main():
 
             # Wait for keypress.
             while True:
-                # Update display while waiting for input
-                update_display_from_iterator(iterator, state, display, args)
-                
                 ch = sys.stdin.read(1)
 
                 if ch == 'q':
@@ -439,7 +447,6 @@ def main():
                     next_idx = existing + session_counts[cls] + 1
                     if state:
                         state.status = f"recording '{cls.upper()}'"
-                        state.frozen = True  # Freeze display during recording
                     
                     print(f"\n  Recording {args.samples_per_burst} samples "
                           f"of '{cls.upper()}'...")
@@ -451,10 +458,13 @@ def main():
                         sample_duration_ms=args.sample_duration_ms,
                         gap_ms=args.gap_ms,
                         delta_t_us=args.delta_t_us,
+                        state=state,
+                        display=display,
+                        args=args,
                     )
 
                     if state:
-                        state.frozen = False  # Unfreeze display after recording
+                        state.status = f"ready for '{cls.upper()}'"
 
                     for i, sample in enumerate(samples):
                         idx = next_idx + i
