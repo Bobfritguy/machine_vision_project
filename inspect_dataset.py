@@ -334,6 +334,8 @@ def main():
                 for idx, cls in enumerate(classes):
                     class_dir = res_dir / cls
                     img_array = visualize_random_sample(class_dir, width, height)
+                    
+                    # Create image with label
                     if img_array is not None:
                         img = Image.fromarray(img_array)
                         # Add class label to top-right
@@ -345,9 +347,25 @@ def main():
                         # Draw white text with black outline for visibility
                         text = cls.upper()
                         draw.text((width - len(text) * 6 - 4, 4), text, fill=(255, 255, 255), font=font)
-                        
-                        row, col = idx // n_cols, idx % n_cols
-                        grid.paste(img, (col * width, row * height))
+                    else:
+                        # Blank image for empty class
+                        img = Image.new("RGB", (width, height), color=(40, 40, 40))
+                        draw = ImageDraw.Draw(img)
+                        # Large centered label
+                        text = cls.upper()
+                        # Try to use larger font
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        # Estimate text size and center it
+                        text_width = len(text) * 14  # Rough estimate for larger font
+                        x = (width - text_width) // 2
+                        y = (height - 14) // 2
+                        draw.text((x, y), text, fill=(200, 200, 200), font=font)
+                    
+                    row, col = idx // n_cols, idx % n_cols
+                    grid.paste(img, (col * width, row * height))
                 
                 out_file = viz_dir / f"{split_name}_{res}.png"
                 grid.save(out_file)
@@ -371,6 +389,8 @@ def main():
                 for idx, cls in enumerate(classes):
                     class_dir = root / cls
                     img_array = visualize_random_sample(class_dir, width, height)
+                    
+                    # Create image with label
                     if img_array is not None:
                         img = Image.fromarray(img_array)
                         # Add class label to top-right
@@ -382,10 +402,27 @@ def main():
                         # Draw white text with black outline for visibility
                         text = cls.upper()
                         draw.text((width - len(text) * 6 - 4, 4), text, fill=(255, 255, 255), font=font)
-                        
-                        row, col = idx // n_cols, idx % n_cols
-                        grid.paste(img, (col * width, row * height))
                         print(f"  Added {cls}")
+                    else:
+                        # Blank image for empty class
+                        img = Image.new("RGB", (width, height), color=(40, 40, 40))
+                        draw = ImageDraw.Draw(img)
+                        # Large centered label
+                        text = cls.upper()
+                        # Try to use larger font
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        # Estimate text size and center it
+                        text_width = len(text) * 14  # Rough estimate for larger font
+                        x = (width - text_width) // 2
+                        y = (height - 14) // 2
+                        draw.text((x, y), text, fill=(200, 200, 200), font=font)
+                        print(f"  Added {cls} (empty)")
+                    
+                    row, col = idx // n_cols, idx % n_cols
+                    grid.paste(img, (col * width, row * height))
                 
                 out_file = viz_dir / "samples.png"
                 grid.save(out_file)
