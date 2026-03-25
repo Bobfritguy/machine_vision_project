@@ -33,8 +33,62 @@ import argparse
 import json
 import sys
 from pathlib import Path
+import random
 
 import numpy as np
+from PIL import Image
+
+
+def render_events_to_image(events: np.ndarray, width: int, height: int, quality: int = 85) -> np.ndarray:
+    """
+    Render events to RGB image with temporal decay.
+    Events: (N, 4) array of [t, x, y, p]
+    Returns: (height, width, 3) uint8 RGB array
+    """
+    if len(events) == 0:
+        return np.zeros((height, width, 3), dtype=np.uint8)
+    
+    # Create accumulator with decay based on time
+    frame = np.zeros((height, width, 3), dtype=np.float32)
+    
+    t_min = events[0, 0]
+    t_max = events[-1, 0] if len(events) > 1 else t_min + 1
+    t_range = t_max - t_min
+    if t_range == 0:
+        t_range = 1
+    
+    # Normalize time to [0, 1]
+    times_norm = (events[:, 0] - t_min) / t_range
+    
+    for i, (t, x, y, p) in enumerate(events):
+        x, y, p = int(x), int(y), int(p)
+        if 0 <= x < width and 0 <= y < height:
+            # Temporal decay: recent events are brighter
+            decay = times_norm[i]
+            
+            if p == 0:  # Blue for polarity 0
+                frame[y, x, 2] = max(frame[y, x, 2], decay * 255)
+            else:  # Red for polarity 1
+                frame[y, x, 0] = max(frame[y, x, 0], decay * 255)
+    
+    return frame.astype(np.uint8)
+
+
+def visualize_random_sample(class_dir: Path, width: int, height: int) -> np.ndarray:
+    """Load and visualize a random sample from a class directory."""
+    files = list(class_dir.glob("*.npy"))
+    if not files:
+        return None
+    
+    sample_path = random.choice(files)
+    try:
+        events = np.load(sample_path, allow_pickle=False).astype(np.float32)
+        if events.ndim == 2 and events.shape[1] == 4 and len(events) > 0:
+            return render_events_to_image(events, width, height)
+    except Exception:
+        pass
+    
+    return None
 
 
 def scan_split(split_dir: Path, resolution: str, max_files: int) -> dict:
@@ -254,6 +308,82 @@ def main():
     with open(out_path, "w") as f:
         json.dump(stats, f, indent=2)
     print(f"\nStats saved → {out_path.resolve()}")
+
+    # Generate visualization of random samples
+    print(f"\n{'='*60}")
+    print("Generating sample visualizations...")
+    viz_dir = root / "sample_visualizations"
+    viz_dir.mkdir(exist_ok=True)
+
+    if has_splits:
+        # ASL format: visualize LR and HR
+        for split_name, split_dir_name in [("train", "SR_Train"), ("test", "SR_Test")]:
+            split_dir = root / split_dir_name
+            for res in ["LR", "HR"]:
+                res_dir = split_dir / res
+                if not res_dir.exists():
+                    continue
+                
+                result = stats.get(split_name, {}).get(res, {})
+                if "coordinate_ranges" not in result:
+                    continue
+                
+                sr = result["inferred_sensor_resolution"]
+                width, height = sr["W"], sr["H"]
+                
+                # Create grid of class samples
+                classes = sorted([d.name for d in res_dir.iterdir() if d.is_dir()])
+                n_cols = min(5, len(classes))
+                n_rows = (len(classes) + n_cols - 1) // n_cols
+                
+                grid = Image.new("RGB", (n_cols * width, n_rows * height), color=(20, 20, 20))
+                
+                for idx, cls in enumerate(classes):
+                    class_dir = res_dir / cls
+                    img_array = visualize_random_sample(class_dir, width, height)
+                    if img_array is not None:
+                        img = Image.fromarray(img_array)
+                        row, col = idx // n_cols, idx % n_cols
+                        grid.paste(img, (col * width, row * height))
+                
+                out_file = viz_dir / f"{split_name}_{res}.png"
+                grid.save(out_file)
+                print(f"  Saved: {out_file.name}")
+    else:
+        # Flat structure
+        result = stats.get("dataset", {})
+        if "coordinate_ranges" in result:
+            sr = result["inferred_sensor_resolution"]
+            width, height = sr["W"], sr["H"]
+            
+            classes = sorted([d.name for d in root.iterdir() if d.is_dir() and (d / "*.npy").exists()])
+            if not classes:
+                # Try direct files if no subdirs
+                classes = ["all"]
+            
+            n_cols = min(5, len(classes))
+            n_rows = (len(classes) + n_cols - 1) // n_cols
+            
+            grid = Image.new("RGB", (n_cols * width, n_rows * height), color=(20, 20, 20))
+            
+            for idx, cls in enumerate(classes):
+                if cls == "all":
+                    img_array = visualize_random_sample(root, width, height)
+                else:
+                    class_dir = root / cls
+                    img_array = visualize_random_sample(class_dir, width, height)
+                
+                if img_array is not None:
+                    img = Image.fromarray(img_array)
+                    row, col = idx // n_cols, idx % n_cols
+                    grid.paste(img, (col * width, row * height))
+            
+            out_file = viz_dir / "samples.png"
+            grid.save(out_file)
+            print(f"  Saved: {out_file.name}")
+    
+    print(f"Visualizations saved → {viz_dir.resolve()}")
+
 
 
 if __name__ == "__main__":
