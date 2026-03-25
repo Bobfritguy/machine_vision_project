@@ -531,41 +531,41 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
                     display: EventDisplay, args: argparse.Namespace) -> None:
     """
     Background thread: continuously read events from camera and put them in queue.
-    Updates display at least once per second.
+    Updates display on each event chunk.
     """
     try:
-        last_display_update = time.time()
         last_t = None
-        event_count = 0
+        total_events = 0
         
         for events_struct in iterator:
             if events_struct is None or len(events_struct) == 0:
                 continue
 
             events = structured_events_to_nx4(events_struct)
-            event_count += len(events)
+            total_events += len(events)
 
             # Put events in queue for both display and recording
             event_queue.put(events)
 
-            # Update display at least once per second
-            now = time.time()
-            if (now - last_display_update >= 1.0 or len(events) > 0) and not state.frozen and display:
-                jpeg_data = display.update(events, args.jpeg_quality)
-                
-                # Calculate event rate
-                if last_t is not None and len(events) > 0:
-                    dt = (events[-1, 0] - last_t) / 1_000_000
-                    rate = event_count / dt if dt > 0 else 0
-                else:
-                    rate = 0
-
+            # Update display on every chunk (if not frozen)
+            if display:
                 with state.lock:
-                    state.latest_jpeg = jpeg_data
-                    state.window_events = event_count
-                    state.event_rate_eps = rate
+                    is_frozen = state.frozen
                 
-                last_display_update = now
+                if not is_frozen:
+                    jpeg_data = display.update(events, args.jpeg_quality)
+                    
+                    # Calculate event rate
+                    if last_t is not None and len(events) > 0:
+                        dt = (events[-1, 0] - last_t) / 1_000_000
+                        rate = total_events / dt if dt > 0 else 0
+                    else:
+                        rate = 0
+
+                    with state.lock:
+                        state.latest_jpeg = jpeg_data
+                        state.window_events = len(events)
+                        state.event_rate_eps = rate
 
             if len(events) > 0:
                 last_t = events[-1, 0]
