@@ -39,40 +39,31 @@ import numpy as np
 from PIL import Image
 
 
-def render_events_to_image(events: np.ndarray, width: int, height: int, quality: int = 85) -> np.ndarray:
+def render_events_to_image(events: np.ndarray, width: int, height: int) -> np.ndarray:
     """
-    Render events to RGB image with temporal decay.
+    Render events to RGB image showing event distribution.
     Events: (N, 4) array of [t, x, y, p]
     Returns: (height, width, 3) uint8 RGB array
     """
     if len(events) == 0:
         return np.zeros((height, width, 3), dtype=np.uint8)
     
-    # Create accumulator
-    frame = np.zeros((height, width, 3), dtype=np.float32)
+    # Create histogram of events at each location with polarity
+    frame = np.zeros((height, width, 3), dtype=np.int32)
     
-    # Normalize time to [0, 1] for brightness scaling
-    t_min = events[0, 0]
-    t_max = events[-1, 0] if len(events) > 1 else t_min + 1
-    t_range = max(t_max - t_min, 1)
-    
-    times_norm = (events[:, 0] - t_min) / t_range
-    
-    # Accumulate events with exponential decay over time
-    for i, (t, x, y, p) in enumerate(events):
+    for t, x, y, p in events:
         x, y = int(x), int(y)
         p = int(p)
         if 0 <= x < width and 0 <= y < height:
-            # Brightness increases with time (recent events are brighter)
-            brightness = 0.3 + 0.7 * times_norm[i]  # Range [0.3, 1.0]
-            
             if p == 0:  # Blue for polarity 0
-                frame[y, x, 2] += brightness * 255
+                frame[y, x, 2] += 1
             else:  # Red for polarity 1
-                frame[y, x, 0] += brightness * 255
+                frame[y, x, 0] += 1
     
-    # Normalize to [0, 255]
+    # Scale to 0-255 range with log scaling for visibility
+    frame = np.log1p(frame.astype(np.float32)) * 30  # Scale factor for brightness
     frame = np.clip(frame, 0, 255).astype(np.uint8)
+    
     return frame
 
 
@@ -352,37 +343,33 @@ def main():
                 grid.save(out_file)
                 print(f"  Saved: {out_file.name}")
     else:
-        # Flat structure
+        # Flat structure: create collage of all classes
         result = stats.get("dataset", {})
         if "coordinate_ranges" in result:
             sr = result["inferred_sensor_resolution"]
             width, height = sr["W"], sr["H"]
             
-            classes = sorted([d.name for d in root.iterdir() if d.is_dir() and (d / "*.npy").exists()])
-            if not classes:
-                # Try direct files if no subdirs
-                classes = ["all"]
+            # Get all class directories
+            classes = sorted([d.name for d in root.iterdir() if d.is_dir()])
             
-            n_cols = min(5, len(classes))
-            n_rows = (len(classes) + n_cols - 1) // n_cols
-            
-            grid = Image.new("RGB", (n_cols * width, n_rows * height), color=(20, 20, 20))
-            
-            for idx, cls in enumerate(classes):
-                if cls == "all":
-                    img_array = visualize_random_sample(root, width, height)
-                else:
+            if classes:
+                n_cols = min(5, len(classes))
+                n_rows = (len(classes) + n_cols - 1) // n_cols
+                
+                grid = Image.new("RGB", (n_cols * width, n_rows * height), color=(20, 20, 20))
+                
+                for idx, cls in enumerate(classes):
                     class_dir = root / cls
                     img_array = visualize_random_sample(class_dir, width, height)
+                    if img_array is not None:
+                        img = Image.fromarray(img_array)
+                        row, col = idx // n_cols, idx % n_cols
+                        grid.paste(img, (col * width, row * height))
+                        print(f"  Added {cls}")
                 
-                if img_array is not None:
-                    img = Image.fromarray(img_array)
-                    row, col = idx // n_cols, idx % n_cols
-                    grid.paste(img, (col * width, row * height))
-            
-            out_file = viz_dir / "samples.png"
-            grid.save(out_file)
-            print(f"  Saved: {out_file.name}")
+                out_file = viz_dir / "samples.png"
+                grid.save(out_file)
+                print(f"  Saved: {out_file.name}")
     
     print(f"Visualizations saved → {viz_dir.resolve()}")
 
