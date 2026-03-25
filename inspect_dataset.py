@@ -48,30 +48,32 @@ def render_events_to_image(events: np.ndarray, width: int, height: int, quality:
     if len(events) == 0:
         return np.zeros((height, width, 3), dtype=np.uint8)
     
-    # Create accumulator with decay based on time
+    # Create accumulator
     frame = np.zeros((height, width, 3), dtype=np.float32)
     
+    # Normalize time to [0, 1] for brightness scaling
     t_min = events[0, 0]
     t_max = events[-1, 0] if len(events) > 1 else t_min + 1
-    t_range = t_max - t_min
-    if t_range == 0:
-        t_range = 1
+    t_range = max(t_max - t_min, 1)
     
-    # Normalize time to [0, 1]
     times_norm = (events[:, 0] - t_min) / t_range
     
+    # Accumulate events with exponential decay over time
     for i, (t, x, y, p) in enumerate(events):
-        x, y, p = int(x), int(y), int(p)
+        x, y = int(x), int(y)
+        p = int(p)
         if 0 <= x < width and 0 <= y < height:
-            # Temporal decay: recent events are brighter
-            decay = times_norm[i]
+            # Brightness increases with time (recent events are brighter)
+            brightness = 0.3 + 0.7 * times_norm[i]  # Range [0.3, 1.0]
             
             if p == 0:  # Blue for polarity 0
-                frame[y, x, 2] = max(frame[y, x, 2], decay * 255)
+                frame[y, x, 2] += brightness * 255
             else:  # Red for polarity 1
-                frame[y, x, 0] = max(frame[y, x, 0], decay * 255)
+                frame[y, x, 0] += brightness * 255
     
-    return frame.astype(np.uint8)
+    # Normalize to [0, 255]
+    frame = np.clip(frame, 0, 255).astype(np.uint8)
+    return frame
 
 
 def visualize_random_sample(class_dir: Path, width: int, height: int) -> np.ndarray:
