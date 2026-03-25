@@ -645,7 +645,7 @@ def make_app(state: SharedState) -> Flask:
             payload = {
                 "status": state.status,
                 "window_events": state.window_events,
-                "event_rate_eps": state.event_rate_eps,
+                "event_rate_eps": float(state.event_rate_eps),
             }
         return payload
 
