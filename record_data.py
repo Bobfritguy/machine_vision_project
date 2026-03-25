@@ -531,8 +531,10 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
                     display: EventDisplay, args: argparse.Namespace) -> None:
     """
     Background thread: continuously read events from camera and put them in queue.
+    Updates display at least once per second.
     """
     try:
+        last_display_update = time.time()
         last_t = None
         event_count = 0
         
@@ -546,26 +548,27 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
             # Put events in queue for both display and recording
             event_queue.put(events)
 
-            # Update display periodically
-            if event_count % 500 == 0 or len(events) > 0:
-                if not state.frozen and display:
-                    jpeg_data = display.update(events, args.jpeg_quality)
-                    
-                    # Calculate event rate
-                    if last_t is not None and len(events) > 0:
-                        dt = (events[-1, 0] - last_t) / 1_000_000
-                        rate = event_count / dt if dt > 0 else 0
-                    else:
-                        rate = 0
+            # Update display at least once per second
+            now = time.time()
+            if (now - last_display_update >= 1.0 or len(events) > 0) and not state.frozen and display:
+                jpeg_data = display.update(events, args.jpeg_quality)
+                
+                # Calculate event rate
+                if last_t is not None and len(events) > 0:
+                    dt = (events[-1, 0] - last_t) / 1_000_000
+                    rate = event_count / dt if dt > 0 else 0
+                else:
+                    rate = 0
 
-                    with state.lock:
-                        state.latest_jpeg = jpeg_data
-                        state.window_events = event_count
-                        state.event_rate_eps = rate
+                with state.lock:
+                    state.latest_jpeg = jpeg_data
+                    state.window_events = event_count
+                    state.event_rate_eps = rate
+                
+                last_display_update = now
 
             if len(events) > 0:
                 last_t = events[-1, 0]
-                event_count = 0
 
     except Exception as exc:
         logger.exception("Camera loop error: %s", exc)
