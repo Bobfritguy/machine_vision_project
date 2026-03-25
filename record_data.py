@@ -617,7 +617,7 @@ def process_queue_for_display(event_queue: queue.Queue, state: SharedState,
             last_t = events[-1, 0]
 
 
-
+def make_app(state: SharedState):
     """Create Flask app for web viewfinder."""
     app = Flask(__name__)
 
