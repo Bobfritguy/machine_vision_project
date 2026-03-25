@@ -792,15 +792,22 @@ def run_camera_loop(args, state: SharedState) -> None:
 
             window_events = np.concatenate(event_ring, axis=0)
 
-            # If an ROI is set, filter to only events inside it for inference.
-            # The display still shows all events — only the model input is cropped.
+            # If an ROI is set, crop to the ROI and remap coordinates to fill
+            # the full 320x320 sensor space. This means the model sees the ROI
+            # content as if it were the entire frame.
             if current_roi is not None:
                 rx1, ry1, rx2, ry2 = current_roi
+                roi_w = max(rx2 - rx1, 1)
+                roi_h = max(ry2 - ry1, 1)
+                W_sensor, H_sensor = GENX320_RESOLUTION
                 mask = (
                     (window_events[:, 1] >= rx1) & (window_events[:, 1] <= rx2) &
                     (window_events[:, 2] >= ry1) & (window_events[:, 2] <= ry2)
                 )
-                window_events = window_events[mask]
+                window_events = window_events[mask].copy()
+                # Remap: shift origin to ROI corner, then scale to full sensor res.
+                window_events[:, 1] = (window_events[:, 1] - rx1) * (W_sensor / roi_w)
+                window_events[:, 2] = (window_events[:, 2] - ry1) * (H_sensor / roi_h)
 
             total_n = len(window_events)
 
