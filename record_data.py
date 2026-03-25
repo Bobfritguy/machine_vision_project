@@ -538,16 +538,22 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
     Updates display continuously on each event chunk.
     This is the ONLY thread that iterates the camera.
     """
+    print("[Camera Thread] Starting...", file=sys.stderr, flush=True)
     try:
         last_t = None
         event_count = 0
+        chunk_num = 0
         
         for events_struct in iterator:
+            chunk_num += 1
             if events_struct is None or len(events_struct) == 0:
                 continue
 
             events = structured_events_to_nx4(events_struct)
             event_count += len(events)
+            
+            if chunk_num % 10 == 0:
+                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events, total {event_count}", file=sys.stderr, flush=True)
             
             # Put into queue for recording to read
             event_queue.put(events)
@@ -582,6 +588,7 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
     finally:
         # Signal end of stream
         event_queue.put(None)
+        print("[Camera Thread] Stopping...", file=sys.stderr, flush=True)
 
 
 def make_app(state: SharedState) -> Flask:
