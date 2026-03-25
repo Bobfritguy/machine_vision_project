@@ -129,6 +129,9 @@ class SharedState:
     window_events: int = 0
     event_rate_eps: float = 0.0
     frozen: bool = False  # Freeze display during recording
+    event_queue: Optional[queue.Queue] = None  # For display updates
+    display: Optional['EventDisplay'] = None  # For display updates
+    args: Optional[argparse.Namespace] = None  # For display updates
 
 
 def resolve_events_iterator():
@@ -401,7 +404,7 @@ def main():
     print("Camera ready.\n")
 
     # Create event queue for threading - one thread reads camera, multiple threads read from queue
-    event_queue = queue.Queue(maxsize=200)
+    event_queue = queue.Queue(maxsize=500)  # Large queue to avoid blocking camera thread
 
     # Initialize web viewfinder if enabled
     state = None
@@ -410,6 +413,9 @@ def main():
         state = SharedState()
         display = EventDisplay(GENX320_RESOLUTION)
         state.status = "ready"
+        state.event_queue = event_queue
+        state.display = display
+        state.args = args
         
         app = make_app(state)
         web_thread = threading.Thread(
@@ -534,14 +540,11 @@ def _print_summary(session_counts: dict, out_dir: Path):
 def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
                     display: EventDisplay, args: argparse.Namespace) -> None:
     """
-    Background thread: read from camera iterator once and put all events into queue.
-    Updates display continuously on each event chunk.
-    This is the ONLY thread that iterates the camera.
+    Background thread: read from camera iterator ONLY.
+    Put events into queue. Nothing else.
     """
     print("[Camera Thread] Starting...", file=sys.stderr, flush=True)
     try:
-        last_t = None
-        event_count = 0
         chunk_num = 0
         
         for events_struct in iterator:
@@ -550,45 +553,71 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
                 continue
 
             events = structured_events_to_nx4(events_struct)
-            event_count += len(events)
             
             if chunk_num % 10 == 0:
-                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events", file=sys.stderr, flush=True)
+                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events, queue size {event_queue.qsize()}", file=sys.stderr, flush=True)
             
-            # Put into queue for recording to read
-            try:
-                event_queue.put(events, timeout=0.1)
-            except queue.Full:
-                # Queue is full, skip this chunk
-                continue
+            # Just put into queue - no timeout, no blocking
+            event_queue.put(events, block=False)
 
-            # Update display - check frozen state without holding lock
-            is_frozen = state.frozen
-            
-            if not is_frozen and display:
-                jpeg_data = display.update(events, args.jpeg_quality)
-                state.latest_jpeg = jpeg_data
-                state.window_events = len(events)
-                
-                # Calculate event rate
-                if last_t is not None and len(events) > 0:
-                    dt = (events[-1, 0] - last_t) / 1_000_000
-                    state.event_rate_eps = event_count / dt if dt > 0 else 0
-
-            if len(events) > 0:
-                last_t = events[-1, 0]
-
+    except queue.Full:
+        print("[Camera Thread] Queue full, stopping", file=sys.stderr, flush=True)
     except Exception as exc:
         print(f"[Camera Thread] Error: {exc}", file=sys.stderr, flush=True)
         logger.exception("Camera loop error: %s", exc)
-        state.status = f"error: {exc}"
     finally:
         # Signal end of stream
-        event_queue.put(None)
+        try:
+            event_queue.put(None, block=False)
+        except queue.Full:
+            pass
         print("[Camera Thread] Stopping...", file=sys.stderr, flush=True)
 
 
-def make_app(state: SharedState) -> Flask:
+def process_queue_for_display(event_queue: queue.Queue, state: SharedState,
+                              display: EventDisplay, args: argparse.Namespace) -> None:
+    """
+    Process events from queue to update display.
+    Called periodically from main thread during wait loop.
+    """
+    if not display:
+        return
+    
+    last_t = None
+    event_count = 0
+    is_frozen = state.frozen
+    
+    # Process all queued events without blocking
+    while True:
+        try:
+            events = event_queue.get_nowait()
+        except queue.Empty:
+            break
+        
+        if events is None:
+            break
+        
+        if len(events) == 0:
+            continue
+        
+        event_count += len(events)
+        
+        # Only update display if not frozen
+        if not is_frozen:
+            jpeg_data = display.update(events, args.jpeg_quality)
+            state.latest_jpeg = jpeg_data
+            state.window_events = len(events)
+            
+            # Calculate event rate
+            if last_t is not None and len(events) > 0:
+                dt = (events[-1, 0] - last_t) / 1_000_000
+                state.event_rate_eps = event_count / dt if dt > 0 else 0
+        
+        if len(events) > 0:
+            last_t = events[-1, 0]
+
+
+
     """Create Flask app for web viewfinder."""
     app = Flask(__name__)
 
@@ -681,6 +710,10 @@ def make_app(state: SharedState) -> Flask:
 
     @app.route("/metrics")
     def metrics():
+        # Process queue to update display
+        if state.event_queue and state.display and state.args and not state.frozen:
+            process_queue_for_display(state.event_queue, state, state.display, state.args)
+        
         with state.lock:
             payload = {
                 "status": state.status,
