@@ -54,7 +54,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import queue
+from collections import deque
 import sys
 import threading
 import time
@@ -129,7 +129,12 @@ class SharedState:
     window_events: int = 0
     event_rate_eps: float = 0.0
     frozen: bool = False  # Freeze display during recording
-    event_queue: Optional[queue.Queue] = None  # For display updates
+    
+    # FIFO buffer: rolling window of events for last 200ms
+    events_deque: deque = field(default_factory=lambda: deque(maxlen=None))
+    deque_start_time: Optional[int] = None  # t value of oldest event in deque
+    max_age_us: int = 200_000  # Keep events from last 200ms
+    
     display: Optional['EventDisplay'] = None  # For display updates
     args: Optional[argparse.Namespace] = None  # For display updates
 
@@ -311,14 +316,14 @@ def setup_camera(args):
     return iterator
 
 
-def record_burst(event_queue: queue.Queue, n_samples: int, sample_duration_ms: int,
+def record_burst(n_samples: int, sample_duration_ms: int,
                  gap_ms: int, delta_t_us: int,
                  state: Optional[SharedState] = None,
                  display: Optional[EventDisplay] = None,
                  args: Optional[argparse.Namespace] = None) -> list[np.ndarray]:
     """
-    Record a burst of n_samples from the event queue.
-    Reads events that were buffered while we were waiting.
+    Record a burst of n_samples from the event buffer.
+    Reads and removes events from the shared FIFO buffer.
     
     Returns a list of (N, 4) float32 arrays, one per sample.
     Timestamps within each sample are in microseconds from the camera.
@@ -333,17 +338,12 @@ def record_burst(event_queue: queue.Queue, n_samples: int, sample_duration_ms: i
     gap_start_t = None
 
     while len(samples) < n_samples:
-        try:
-            # Get events from queue with timeout
-            events = event_queue.get(timeout=1.0)
-        except queue.Empty:
-            continue
-
-        if events is None:
-            # End of stream
-            break
+        # Get events from the buffer (removes them)
+        events = get_events_for_recording(state) if state else np.empty((0, 4), dtype=np.float32)
         
         if len(events) == 0:
+            # No events available yet, wait a bit
+            time.sleep(0.01)
             continue
 
         chunk_t_min = float(events[0, 0])
@@ -403,9 +403,6 @@ def main():
     iterator = setup_camera(args)
     print("Camera ready.\n")
 
-    # Create event queue for threading - one thread reads camera, multiple threads read from queue
-    event_queue = queue.Queue(maxsize=500)  # Large queue to avoid blocking camera thread
-
     # Initialize web viewfinder if enabled
     state = None
     display = None
@@ -413,7 +410,6 @@ def main():
         state = SharedState()
         display = EventDisplay(GENX320_RESOLUTION)
         state.status = "ready"
-        state.event_queue = event_queue
         state.display = display
         state.args = args
         
@@ -429,7 +425,7 @@ def main():
         # Start background camera thread - this is the ONLY thread reading the iterator
         camera_thread = threading.Thread(
             target=run_camera_loop,
-            args=(iterator, event_queue, state, display, args),
+            args=(iterator, state),
             daemon=True
         )
         camera_thread.start()
@@ -481,7 +477,6 @@ def main():
                     print(f"  Hold the gesture steady and move slightly.\n")
 
                     samples = record_burst(
-                        event_queue,
                         n_samples=args.samples_per_burst,
                         sample_duration_ms=args.sample_duration_ms,
                         gap_ms=args.gap_ms,
@@ -537,84 +532,64 @@ def _print_summary(session_counts: dict, out_dir: Path):
     print(f"{'='*60}")
 
 
-def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
-                    display: EventDisplay, args: argparse.Namespace) -> None:
+def run_camera_loop(iterator, state: SharedState) -> None:
     """
-    Background thread: read from camera iterator ONLY.
-    Put events into queue. Nothing else.
+    Background thread: read from camera iterator once and buffer in FIFO deque.
+    Events stay in buffer for ~200ms.
+    Both display (read) and recording (read+remove) access this buffer.
     """
-    print("[Camera Thread] Starting...", file=sys.stderr, flush=True)
     try:
-        chunk_num = 0
-        
         for events_struct in iterator:
-            chunk_num += 1
             if events_struct is None or len(events_struct) == 0:
                 continue
 
             events = structured_events_to_nx4(events_struct)
             
-            if chunk_num % 10 == 0:
-                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events, queue size {event_queue.qsize()}", file=sys.stderr, flush=True)
-            
-            # Just put into queue - no timeout, no blocking
-            event_queue.put(events, block=False)
+            with state.lock:
+                # Add events to the rolling buffer
+                for event in events:
+                    state.events_deque.append(event)
+                
+                # Prune old events: remove anything older than 200ms
+                if len(state.events_deque) > 0:
+                    newest_t = state.events_deque[-1][0]
+                    oldest_allowed_t = newest_t - state.max_age_us
+                    
+                    while len(state.events_deque) > 0 and state.events_deque[0][0] < oldest_allowed_t:
+                        state.events_deque.popleft()
+                
+                # Update display with all events in buffer (web view just grabs latest)
+                if not state.frozen and len(state.events_deque) > 0:
+                    buffered_events = np.array(list(state.events_deque))
+                    if len(buffered_events) > 0 and state.display and state.args:
+                        jpeg_data = state.display.update(buffered_events, state.args.jpeg_quality)
+                        state.latest_jpeg = jpeg_data
+                        state.window_events = len(buffered_events)
+                        
+                        # Calculate event rate
+                        if len(buffered_events) > 1:
+                            dt = (buffered_events[-1, 0] - buffered_events[0, 0]) / 1_000_000
+                            if dt > 0:
+                                state.event_rate_eps = len(buffered_events) / dt
 
-    except queue.Full:
-        print("[Camera Thread] Queue full, stopping", file=sys.stderr, flush=True)
     except Exception as exc:
-        print(f"[Camera Thread] Error: {exc}", file=sys.stderr, flush=True)
         logger.exception("Camera loop error: %s", exc)
     finally:
-        # Signal end of stream
-        try:
-            event_queue.put(None, block=False)
-        except queue.Full:
-            pass
-        print("[Camera Thread] Stopping...", file=sys.stderr, flush=True)
+        pass  # Camera loop done
 
 
-def process_queue_for_display(event_queue: queue.Queue, state: SharedState,
-                              display: EventDisplay, args: argparse.Namespace) -> None:
+def get_events_for_recording(state: SharedState) -> np.ndarray:
     """
-    Process events from queue to update display.
-    Called periodically from main thread during wait loop.
+    Recording reads ALL current events from the buffer and removes them.
+    This consumes the events so they're not recorded twice.
     """
-    if not display:
-        return
-    
-    last_t = None
-    event_count = 0
-    is_frozen = state.frozen
-    
-    # Process all queued events without blocking
-    while True:
-        try:
-            events = event_queue.get_nowait()
-        except queue.Empty:
-            break
+    with state.lock:
+        if len(state.events_deque) == 0:
+            return np.empty((0, 4), dtype=np.float32)
         
-        if events is None:
-            break
-        
-        if len(events) == 0:
-            continue
-        
-        event_count += len(events)
-        
-        # Only update display if not frozen
-        if not is_frozen:
-            jpeg_data = display.update(events, args.jpeg_quality)
-            state.latest_jpeg = jpeg_data
-            state.window_events = len(events)
-            
-            # Calculate event rate
-            if last_t is not None and len(events) > 0:
-                dt = (events[-1, 0] - last_t) / 1_000_000
-                state.event_rate_eps = event_count / dt if dt > 0 else 0
-        
-        if len(events) > 0:
-            last_t = events[-1, 0]
+        events = np.array(list(state.events_deque))
+        state.events_deque.clear()
+        return events
 
 
 def make_app(state: SharedState):
@@ -710,10 +685,6 @@ def make_app(state: SharedState):
 
     @app.route("/metrics")
     def metrics():
-        # Process queue to update display
-        if state.event_queue and state.display and state.args and not state.frozen:
-            process_queue_for_display(state.event_queue, state, state.display, state.args)
-        
         with state.lock:
             payload = {
                 "status": state.status,
