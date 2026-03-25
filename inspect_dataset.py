@@ -128,40 +128,108 @@ def scan_split(split_dir: Path, resolution: str, max_files: int) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Inspect ASL-DVS event-camera dataset"
+        description="Inspect ASL-DVS or custom event-camera dataset"
     )
-    parser.add_argument("--root", default="/big_boy_hdd/ASL_Dataset/ASL",
-                        help="Path to the ASL/ dataset root directory")
-    parser.add_argument("--out", default="dataset_stats.json",
-                        help="Output JSON file path")
+    parser.add_argument("--root", default=None,
+                        help="Path to dataset root directory (auto-detect ASL or flat structure)")
+    parser.add_argument("--out", default=None,
+                        help="Output JSON file path (default: dataset_stats.json)")
     parser.add_argument("--max-files", type=int, default=100,
                         help="Max .npy files to sample per class (default 100)")
     args = parser.parse_args()
+
+    # Auto-detect dataset path if not provided
+    if args.root is None:
+        # Try standard locations in order
+        candidates = [
+            Path("datasets/genx320_recorded"),
+            Path("/big_boy_hdd/ASL_Dataset/ASL"),
+        ]
+        args.root = None
+        for cand in candidates:
+            if cand.exists():
+                args.root = str(cand)
+                break
+        if args.root is None:
+            print(f"ERROR: No dataset found. Tried: {[str(c) for c in candidates]}", file=sys.stderr)
+            sys.exit(1)
 
     root = Path(args.root)
     if not root.exists():
         print(f"ERROR: dataset root not found: {root}", file=sys.stderr)
         sys.exit(1)
 
+    if args.out is None:
+        args.out = f"{root.name}_stats.json"
+
     stats = {}
 
-    for split_name, split_dir_name in [("train", "SR_Train"), ("test", "SR_Test")]:
-        split_dir = root / split_dir_name
-        stats[split_name] = {}
+    # Detect dataset type: check for SR_Train/SR_Test (ASL) vs flat class folders
+    has_splits = (root / "SR_Train").exists() or (root / "SR_Test").exists()
+
+    if has_splits:
+        # ASL-DVS format with splits
+        for split_name, split_dir_name in [("train", "SR_Train"), ("test", "SR_Test")]:
+            split_dir = root / split_dir_name
+            stats[split_name] = {}
+            for res in ["LR", "HR"]:
+                print(f"\n{'='*60}")
+                print(f"Scanning {split_name.upper()} / {res} ...")
+                result = scan_split(split_dir, res, args.max_files)
+                stats[split_name][res] = result
+
+                if "error" in result:
+                    print(f"  ERROR: {result['error']}")
+                    continue
+
+                total = sum(result["class_counts"].values())
+                print(f"  Classes  : {len(result['classes'])}  ({result['classes']})")
+                print(f"  Samples  : {total} total  "
+                      f"({list(result['class_counts'].values())[0]} per class)")
+                cr = result["coordinate_ranges"]
+                print(f"  x range  : [{cr['x']['min']}, {cr['x']['max']}]")
+                print(f"  y range  : [{cr['y']['min']}, {cr['y']['max']}]")
+                print(f"  t range  : [{cr['t']['min']:.1f}, {cr['t']['max']:.1f}]  "
+                      f"→ {result['timestamp_type']}")
+                print(f"  polarity : {cr['p']['unique_values']}  ({cr['p']['note']})")
+                sr = result["inferred_sensor_resolution"]
+                print(f"  Inferred sensor : {sr['W']} × {sr['H']}  (W × H)")
+                ec = result["event_counts_per_sample"]
+                print(f"  Events/sample   : min={ec['min']}  max={ec['max']}  "
+                      f"mean={ec['mean']:.0f}  median={ec['median']:.0f}  "
+                      f"p10={ec['p10']:.0f}  p90={ec['p90']:.0f}")
+                if result["bad_files"]:
+                    print(f"  BAD files       : {len(result['bad_files'])} "
+                          f"(first: {result['bad_files'][0]})")
+
+        # Compare LR vs HR
+        print(f"\n{'='*60}")
+        print("LR vs HR comparison (train split):")
         for res in ["LR", "HR"]:
-            print(f"\n{'='*60}")
-            print(f"Scanning {split_name.upper()} / {res} ...")
-            result = scan_split(split_dir, res, args.max_files)
-            stats[split_name][res] = result
+            d = stats.get("train", {}).get(res, {})
+            if "coordinate_ranges" in d:
+                cr = d["coordinate_ranges"]
+                sr = d["inferred_sensor_resolution"]
+                print(f"  {res}: x=[{cr['x']['min']},{cr['x']['max']}]  "
+                      f"y=[{cr['y']['min']},{cr['y']['max']}]  "
+                      f"=> {sr['W']}×{sr['H']}")
 
-            if "error" in result:
-                print(f"  ERROR: {result['error']}")
-                continue
+        print(f"\n{'='*60}")
+        print("NOTE: LR was created by 2×2 downsampling of HR (DAVIS240C 240×180).")
+        print("      This is consistent with the paper [Li et al., CVPR 2021].")
+    else:
+        # Flat structure: class folders directly in root
+        print(f"\n{'='*60}")
+        print(f"Scanning flat dataset structure in {root.name} ...")
+        result = scan_split(root, "", args.max_files)
+        stats["dataset"] = result
 
+        if "error" in result:
+            print(f"  ERROR: {result['error']}")
+        else:
             total = sum(result["class_counts"].values())
             print(f"  Classes  : {len(result['classes'])}  ({result['classes']})")
-            print(f"  Samples  : {total} total  "
-                  f"({list(result['class_counts'].values())[0]} per class)")
+            print(f"  Samples  : {total} total  ({', '.join(f'{c}={n}' for c, n in result['class_counts'].items())})")
             cr = result["coordinate_ranges"]
             print(f"  x range  : [{cr['x']['min']}, {cr['x']['max']}]")
             print(f"  y range  : [{cr['y']['min']}, {cr['y']['max']}]")
@@ -178,36 +246,14 @@ def main():
                 print(f"  BAD files       : {len(result['bad_files'])} "
                       f"(first: {result['bad_files'][0]})")
 
-    # Compare LR vs HR
-    print(f"\n{'='*60}")
-    print("LR vs HR comparison (train split):")
-    for res in ["LR", "HR"]:
-        d = stats.get("train", {}).get(res, {})
-        if "coordinate_ranges" in d:
-            cr = d["coordinate_ranges"]
-            sr = d["inferred_sensor_resolution"]
-            print(f"  {res}: x=[{cr['x']['min']},{cr['x']['max']}]  "
-                  f"y=[{cr['y']['min']},{cr['y']['max']}]  "
-                  f"=> {sr['W']}×{sr['H']}")
-
-    print(f"\n{'='*60}")
-    print("NOTE: LR was created by 2×2 downsampling of HR (DAVIS240C 240×180).")
-    print("      This is consistent with the paper [Li et al., CVPR 2021].")
+            print(f"\n--- Recommended PreprocessConfig ---")
+            print(f"  PreprocessConfig(source_resolution=({sr['W']}, {sr['H']}))")
 
     # Save JSON
     out_path = Path(args.out)
     with open(out_path, "w") as f:
         json.dump(stats, f, indent=2)
     print(f"\nStats saved → {out_path.resolve()}")
-
-    # Recommended PreprocessConfig
-    print("\n--- Recommended PreprocessConfig values ---")
-    for res in ["LR", "HR"]:
-        d = stats.get("train", {}).get(res, {})
-        if "inferred_sensor_resolution" in d:
-            sr = d["inferred_sensor_resolution"]
-            print(f"  {res}: PreprocessConfig(source_resolution=({sr['W']}, {sr['H']}))")
-    print("  GENX320 live: PreprocessConfig(source_resolution=(320, 320))")
 
 
 if __name__ == "__main__":
