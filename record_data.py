@@ -553,38 +553,35 @@ def run_camera_loop(iterator, event_queue: queue.Queue, state: SharedState,
             event_count += len(events)
             
             if chunk_num % 10 == 0:
-                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events, total {event_count}", file=sys.stderr, flush=True)
+                print(f"[Camera Thread] Chunk {chunk_num}: {len(events)} events", file=sys.stderr, flush=True)
             
             # Put into queue for recording to read
-            event_queue.put(events)
+            try:
+                event_queue.put(events, timeout=0.1)
+            except queue.Full:
+                # Queue is full, skip this chunk
+                continue
 
-            # Update display every time (unless frozen)
-            if display:
-                with state.lock:
-                    is_frozen = state.frozen
+            # Update display - check frozen state without holding lock
+            is_frozen = state.frozen
+            
+            if not is_frozen and display:
+                jpeg_data = display.update(events, args.jpeg_quality)
+                state.latest_jpeg = jpeg_data
+                state.window_events = len(events)
                 
-                if not is_frozen:
-                    jpeg_data = display.update(events, args.jpeg_quality)
-                    
-                    # Calculate event rate
-                    if last_t is not None and len(events) > 0:
-                        dt = (events[-1, 0] - last_t) / 1_000_000
-                        rate = event_count / dt if dt > 0 else 0
-                    else:
-                        rate = 0
-
-                    with state.lock:
-                        state.latest_jpeg = jpeg_data
-                        state.window_events = len(events)
-                        state.event_rate_eps = rate
+                # Calculate event rate
+                if last_t is not None and len(events) > 0:
+                    dt = (events[-1, 0] - last_t) / 1_000_000
+                    state.event_rate_eps = event_count / dt if dt > 0 else 0
 
             if len(events) > 0:
                 last_t = events[-1, 0]
 
     except Exception as exc:
+        print(f"[Camera Thread] Error: {exc}", file=sys.stderr, flush=True)
         logger.exception("Camera loop error: %s", exc)
-        with state.lock:
-            state.status = f"error: {exc}"
+        state.status = f"error: {exc}"
     finally:
         # Signal end of stream
         event_queue.put(None)
