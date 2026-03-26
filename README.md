@@ -289,6 +289,21 @@ runs/my\_run/
 `preprocess\_config.json` records the representation, source and target resolution, and normalisation strategy. These must match at inference time. If you train with `--repr two\_channel --target-size 256`, pass the same flags to `infer\_web\_live.py`.
 
 
+## Metrics
+
+### Class distribution
+
+![Class counts](metrics_output/class_counts.png)
+
+### Per-class F1 score (ASL test set)
+
+![Per-class F1](metrics_output/per_class_f1.png)
+
+### Confusion matrices (ASL test set)
+
+![Confusion matrices](metrics_output/confusion_matrices.png)
+
+
 ## Dataset structure (ASL-DVS)
 
 ```
