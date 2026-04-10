@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 18:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 18:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -516,13 +516,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 213--214
 /10 < \OT1/cmr/m/n/10 50 []$
  []
 
-
+[3 <./dashboard_screenshot.png (PNG copy)> <./training_curves.png> <./per_class
+_f1.png>]
 Underfull \hbox (badness 3148) in paragraph at lines 217--218
 \T1/ptm/m/n/10 hard-ware: 24-class ASL recog-ni-tion at 60 FPS max-i-
  []
 
-[3 <./dashboard_screenshot.png (PNG copy)> <./training_curves.png> <./per_class
-_f1.png>] (./machine_vision_report.bbl) [4 <./confusion_matrices.png>]
+(./machine_vision_report.bbl) [4 <./confusion_matrices.png>]
 (./machine_vision_report.aux)
  ***********
 LaTeX2e <2025-11-01>
@@ -553,7 +553,7 @@ symbols/msbm10.pfb></usr/share/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></
 usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fo
 nts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/ut
 mr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (4 pages, 817740 bytes).
+Output written on machine_vision_report.pdf (4 pages, 818041 bytes).
 PDF statistics:
  128 PDF objects out of 1000 (max. 8388607)
  72 compressed objects within 1 object stream
