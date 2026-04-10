@@ -23,7 +23,7 @@
 
 American Sign Language (ASL) recognition is a high-value assistive technology problem: automated letter-by-letter recognition would enable a cheap camera to serve as a real-time bridge between signing users and text-based interfaces. The goal of this project is to build a complete, real-time ASL gesture recognition system using the Prophesee GenX320 neuromorphic event camera and a lightweight CNN classifier, and to deploy it as a live web dashboard.
 
-Event cameras are a strong fit for this task as an embedded application. Unlike conventional cameras that stream full frames at a fixed rate, the GenX320 reports only per-pixel brightness changes, producing sparse, asynchronous event data with sub-millisecond latency and power consumption under \SI{50}{mW}. This makes event cameras inherently suited for always-on, power-efficient deployment at the edge — important properties for wearable assistive devices. The sparse output also reduces the data bandwidth and compute required per inference cycle compared to full-frame video.
+Event cameras are a strong fit for this task as an embedded application. Unlike conventional cameras that stream full frames at a fixed rate, the GenX320 reports only per-pixel brightness changes, producing sparse, asynchronous event data with sub-millisecond latency and power consumption under \SI{50}{mW}. This makes event cameras inherently suited for always-on, power-efficient deployment at the edge. The sparse output also reduces the data bandwidth and compute required per inference cycle compared to full-frame video.
 
 The core technical challenge is \textit{cross-sensor domain adaptation}: the only available labelled training data (ASL-DVS) was captured with a different sensor (IniVation DAVIS240C at $120{\times}90$), requiring the model to generalise across different resolutions, aspect ratios, noise profiles, and polarity conventions.
 
@@ -134,7 +134,7 @@ Table~\ref{tab:results} gives test-set accuracy for both training configurations
     \end{tabular}
 \end{table}
 
-Fig.~\ref{fig:confusion} shows row-normalised confusion matrices for both runs. Both are near-perfect diagonals. Residual errors concentrate on visually similar pairs — M/N (finger count over thumb), U/R (parallel vs crossed fingers), and C/S (open vs closed arc) — consistent with the inherent ambiguity of these letter pairs in any 2D spatial representation.
+Fig.~\ref{fig:confusion} shows row-normalised confusion matrices for both runs. Both are near-perfect diagonals. Errors concentrate on visually similar pairs, like M/N (finger count over thumb), U/R (parallel vs crossed fingers), and C/S (open vs closed arc) consistent with the inherent ambiguity of these letter pairs in any 2D spatial representation.
 
 \begin{figure*}[t]
     \centering
@@ -168,7 +168,7 @@ Projections use the published Geekbench~6 single-core ratio between the two proc
     \end{tabular}
 \end{table}
 
-On plain PyTorch the Pi~5 pipeline is projected at \SI{47}{ms}, leaving only \SI{3}{ms} of headroom within the \SI{50}{ms} camera window — marginal for reliable real-time operation. Exporting the model to ONNX Runtime reduces the projected pipeline to \SI{39}{ms} (26 FPS), providing comfortable headroom. INT8 post-training quantisation, which the Cortex-A76's dot-product instructions support, could reduce inference further to below \SI{10}{ms}, pushing the full pipeline below \SI{35}{ms}.
+On plain PyTorch the Pi~5 pipeline is projected at \SI{47}{ms}, leaving only \SI{3}{ms} of headroom within the \SI{50}{ms} camera window. Exporting the model to ONNX Runtime reduces the projected pipeline to \SI{39}{ms} (26 FPS), providing comfortable headroom. INT8 post-training quantisation, which the Cortex-A76's dot-product instructions support, could reduce inference further to below \SI{10}{ms}, pushing the full pipeline below \SI{35}{ms}.
 
 \textbf{Power:} The GenX320 sensor draws $<\SI{50}{mW}$ (datasheet~\cite{prophesee2023}). The Pi~5 draws 2.6W at idle and 5--7W under sustained CPU load~\cite{geerling2023}, compared to the development workstation's ${\sim}$40--50W at light load. This 6--8$\times$ power reduction makes the Pi~5 a credible embedded host for battery-powered or wearable deployment.
 
@@ -176,7 +176,7 @@ On plain PyTorch the Pi~5 pipeline is projected at \SI{47}{ms}, leaving only \SI
 
 The system meets its core goals on the development hardware: 24-class ASL recognition at 60 FPS maximum pipeline throughput with 99.98\% benchmark accuracy. Cross-sensor domain adaptation successfully bridges the DAVIS240C$\to$GenX320 gap without sensor-specific model changes.
 
-On a Raspberry Pi~5 the system is projected to achieve real-time operation at 26 FPS with ONNX Runtime export — sufficient for the 20 FPS camera window — at 5--7W system power. Plain PyTorch on the Pi~5 would be marginal (\SI{47}{ms} pipeline, $<$\SI{3}{ms} headroom) and would require ONNX export or INT8 quantisation before deployment. The primary gap between the current state and full embedded deployment is therefore not architectural but optimisation: ONNX export and INT8 quantisation of the existing trained model.
+On a Raspberry Pi~5 the system is projected to achieve real-time operation at 26 FPS with ONNX Runtime export, sufficient for the 20 FPS camera windowat 5--7W system power. Plain PyTorch on the Pi~5 would be marginal (\SI{47}{ms} pipeline, $<$\SI{3}{ms} headroom) and would require ONNX export or INT8 quantisation before deployment. The primary gap between the current state and full embedded deployment is therefore not architectural but optimisation: ONNX export and INT8 quantisation of the existing trained model.
 
 % ============================================================
 \section{Conclusions}
