@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 17:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 17:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -407,8 +407,18 @@ LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 3
 (/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
+<sample_frames.png, id=1, 458.6736pt x 327.1422pt>
+File: sample_frames.png Graphic file (type png)
+<use sample_frames.png>
+Package pdftex.def Info: sample_frames.png  used on input line 42.
+(pdftex.def)             Requested size: 252.0pt x 179.73407pt.
+ [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fo
+nts/enc/dvips/base/8r.enc}
+
+
+ <./sample_frames.png>]
 ! Undefined control sequence.
-l.66 ...has pixel value $I_c(x,y) = \sum_i \mathbb
+l.73 ...has pixel value $I_c(x,y) = \sum_i \mathbb
                                                   {1}[p_i = c, x_i = x, y_i ...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -416,48 +426,44 @@ misspelled it (e.g., `\hobx'), type `I' and the correct
 spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 70
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 77
 .
 (/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 10000) in paragraph at lines 69--71
+Underfull \hbox (badness 10000) in paragraph at lines 76--78
 \T1/ptm/m/n/10 The re-sult-ing $\OT1/cmr/m/n/10 2[]\OML/cmm/m/it/10 H[]W$ \T1/p
 tm/m/n/10 ten-sor is bicubic-resized to
  []
 
-[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fon
-ts/enc/dvips/base/8r.enc}
 
-
-]
-Underfull \hbox (badness 10000) in paragraph at lines 74--75
+Underfull \hbox (badness 10000) in paragraph at lines 81--82
 []\T1/ptm/m/n/10 An \T1/pcr/m/n/10 EventFrameAugment \T1/ptm/m/n/10 trans-form 
 is ap-plied
  []
 
 
-Underfull \hbox (badness 4913) in paragraph at lines 74--75
+Underfull \hbox (badness 4913) in paragraph at lines 81--82
 \T1/ptm/m/n/10 stochas-ti-cally to ev-ery train-ing sam-ple to bridge the
  []
 
-<confusion_matrices.png, id=15, 1872.39525pt x 899.15926pt>
+<confusion_matrices.png, id=19, 1872.39525pt x 899.15926pt>
 File: confusion_matrices.png Graphic file (type png)
 <use confusion_matrices.png>
-Package pdftex.def Info: confusion_matrices.png  used on input line 141.
+Package pdftex.def Info: confusion_matrices.png  used on input line 148.
 (pdftex.def)             Requested size: 516.0pt x 247.78406pt.
-
-Underfull \hbox (badness 10000) in paragraph at lines 171--172
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 178--179
 []\T1/ptm/b/n/10 Power: \T1/ptm/m/n/10 The GenX320 sen-sor draws $\OML/cmm/m/it
 /10 < \OT1/cmr/m/n/10 50 []$
  []
 
 
-Underfull \hbox (badness 3148) in paragraph at lines 175--176
+Underfull \hbox (badness 3148) in paragraph at lines 182--183
 \T1/ptm/m/n/10 hard-ware: 24-class ASL recog-ni-tion at 60 FPS max-i-
  []
 
-[2] (./machine_vision_report.bbl
+(./machine_vision_report.bbl [3 <./confusion_matrices.png>]
 Underfull \hbox (badness 4505) in paragraph at lines 55--58
 []\T1/ptm/m/n/8 Microsoft, ``ONNX run-time per-for-mance tun-ing for ARM plat-
  []
@@ -468,17 +474,19 @@ Underfull \hbox (badness 3108) in paragraph at lines 55--58
 ocs / performance /
  []
 
-) [3 <./confusion_matrices.png>] (./machine_vision_report.aux)
+) [4
+
+] (./machine_vision_report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8541 strings out of 469515
- 192796 string characters out of 5470807
- 591400 words of memory out of 5000000
- 37111 multiletter control sequences out of 15000+600000
+ 8552 strings out of 469515
+ 193042 string characters out of 5470807
+ 590422 words of memory out of 5000000
+ 37122 multiletter control sequences out of 15000+600000
  741001 words of font info for 149 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
  73i,11n,83p,810b,731s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -495,10 +503,10 @@ cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr
 st/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/ti
 mes/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/sh
 are/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (3 pages, 283267 bytes).
+Output written on machine_vision_report.pdf (4 pages, 462486 bytes).
 PDF statistics:
- 98 PDF objects out of 1000 (max. 8388607)
- 58 compressed objects within 1 object stream
+ 103 PDF objects out of 1000 (max. 8388607)
+ 60 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 11 words of extra memory for PDF output out of 10000 (max. 10000000)
 

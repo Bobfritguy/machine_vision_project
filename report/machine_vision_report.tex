@@ -35,7 +35,14 @@ The core technical challenge is \textit{cross-sensor domain adaptation}: the onl
 
 Event cameras fire asynchronous per-pixel events $e = (t, x, y, p)$ when local log-intensity changes exceed a threshold, providing microsecond temporal resolution and high dynamic range~\cite{lichtsteiner2008}. The Prophesee GenX320 uses Sony's IMX636 stacked sensor with a $320{\times}320$ pixel array, \SI{4.86}{\micro\metre} pixel pitch, and $>\SI{120}{dB}$ dynamic range~\cite{prophesee2023}.
 
-The ASL-DVS dataset~\cite{bi2019} provides 100,800 event recordings of 24 static ASL letters (A--Y, excluding J and Z which require motion) recorded with a DAVIS240C. Prior methods on this dataset used graph-based point-cloud networks achieving ${\sim}91\%$ accuracy. This informs a key design decision: rather than replicating a specialised neuromorphic architecture, we adopt a standard CNN on event-to-frame representations, which is simpler to train and deploy and, as we show, substantially outperforms the prior graph-based approach.
+The ASL-DVS dataset~\cite{bi2019} provides 100,800 event recordings of 24 static ASL letters (A--Y, excluding J and Z which require motion) recorded with a DAVIS240C. Prior methods on this dataset used graph-based point-cloud networks achieving ${\sim}91\%$ accuracy. This informs a key design decision: rather than replicating a specialised neuromorphic architecture, we adopt a standard CNN on event-to-frame representations, which is simpler to train and deploy and, as we show, substantially outperforms the prior graph-based approach. Representative two-channel event frames for six classes are shown in Fig.~\ref{fig:samples}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{sample_frames.png}
+    \caption{Two-channel event frames for six ASL letters from the ASL-DVS dataset (DAVIS240C, $120{\times}90$, resized to $256{\times}256$). Red pixels indicate ON events (brightness increase); blue pixels indicate OFF events (brightness decrease).}
+    \label{fig:samples}
+\end{figure}
 
 \subsection{Event Representations}
 
