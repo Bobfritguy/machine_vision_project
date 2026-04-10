@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 18:21
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 18:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -344,8 +344,26 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \@float@everytoks=\toks29
 \@floatcapt=\box68
 )
+(/usr/share/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+(/usr/share/texmf-dist/tex/latex/bbm-macros/bbm.sty
+Package: bbm 1999/03/15 V 1.2 provides fonts for set symbols - TH
+LaTeX Font Info:    Overwriting math alphabet `\mathbbm' in version `bold'
+(Font)                  U/bbm/m/n --> U/bbm/bx/n on input line 33.
+LaTeX Font Info:    Overwriting math alphabet `\mathbbmss' in version `bold'
+(Font)                  U/bbmss/m/n --> U/bbmss/bx/n on input line 35.
+)
 Package translations Info: No language package found. I am going to use `englis
-h' as default language. on input line 12.
+h' as default language. on input line 14.
 
 (/usr/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
@@ -354,20 +372,20 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 (./machine_vision_report.aux)
 \openout1 = `machine_vision_report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
 
 -- Lines per column: 58 (exact).
 (/usr/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -398,72 +416,75 @@ File: translations-basic-dictionary-english.trsl (english translation file `tra
 nslations-basic-dictionary')
 )
 Package translations Info: loading dictionary `translations-basic-dictionary' f
-or `english'. on input line 12.
+or `english'. on input line 14.
 
 ** WARNING: \and is valid only when in conference or peerreviewca
-modes (line 18).
+modes (line 20).
+LaTeX Font Info:    Trying to load font information for U+msa on input line 23.
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 23.
+
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 4
-0.
+2.
+
 (/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
 <sample_frames.png, id=1, 458.6736pt x 327.1422pt>
 File: sample_frames.png Graphic file (type png)
 <use sample_frames.png>
-Package pdftex.def Info: sample_frames.png  used on input line 46.
+Package pdftex.def Info: sample_frames.png  used on input line 48.
 (pdftex.def)             Requested size: 252.0pt x 179.73407pt.
  [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fo
 nts/enc/dvips/base/8r.enc}
 
 
  <./sample_frames.png>]
-! Undefined control sequence.
-l.77 ...has pixel value $I_c(x,y) = \sum_i \mathbb
-                                                  {1}[p_i = c, x_i = x, y_i ...
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 81
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 83
 .
-(/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
+ (/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 10000) in paragraph at lines 80--82
+Underfull \hbox (badness 10000) in paragraph at lines 82--84
 \T1/ptm/m/n/10 The re-sult-ing $\OT1/cmr/m/n/10 2[]\OML/cmm/m/it/10 H[]W$ \T1/p
 tm/m/n/10 ten-sor is bicubic-resized to
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 85--86
+Underfull \hbox (badness 10000) in paragraph at lines 87--88
 []\T1/ptm/m/n/10 An \T1/pcr/m/n/10 EventFrameAugment \T1/ptm/m/n/10 trans-form 
 is ap-plied
  []
 
 
-Underfull \hbox (badness 4913) in paragraph at lines 85--86
+Underfull \hbox (badness 4913) in paragraph at lines 87--88
 \T1/ptm/m/n/10 stochas-ti-cally to ev-ery train-ing sam-ple to bridge the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 104--105
+Underfull \hbox (badness 10000) in paragraph at lines 106--107
 \T1/ptm/m/n/10 sam-ples) and GenX320 (1,500 sam-ples) sets are
  []
 
 
-Underfull \hbox (badness 7291) in paragraph at lines 104--105
+Underfull \hbox (badness 7291) in paragraph at lines 106--107
 \T1/ptm/m/n/10 com-bined into a sin-gle dataset and fed through a
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 104--105
+Underfull \hbox (badness 10000) in paragraph at lines 106--107
 \T1/pcr/m/n/10 WeightedRandomSampler\T1/ptm/m/n/10 . Each GenX320 sam-ple
  []
 
 
-Underfull \hbox (badness 1527) in paragraph at lines 104--105
+Underfull \hbox (badness 1527) in paragraph at lines 106--107
 \T1/pcr/m/n/10 EventFrameAugment \T1/ptm/m/n/10 is ap-plied dur-ing train-ing o
 nly;
  []
@@ -471,61 +492,51 @@ nly;
 <dashboard_screenshot.png, id=22, 658.1388pt x 433.62pt>
 File: dashboard_screenshot.png Graphic file (type png)
 <use dashboard_screenshot.png>
-Package pdftex.def Info: dashboard_screenshot.png  used on input line 129.
+Package pdftex.def Info: dashboard_screenshot.png  used on input line 131.
 (pdftex.def)             Requested size: 252.0pt x 166.03444pt.
 [2]
-<training_curves.png, id=31, 867.24pt x 289.08pt>
+<training_curves.png, id=32, 867.24pt x 289.08pt>
 File: training_curves.png Graphic file (type png)
 <use training_curves.png>
-Package pdftex.def Info: training_curves.png  used on input line 163.
+Package pdftex.def Info: training_curves.png  used on input line 165.
 (pdftex.def)             Requested size: 252.0pt x 83.99866pt.
-<per_class_f1.png, id=32, 1156.32pt x 361.35pt>
+<per_class_f1.png, id=33, 1156.32pt x 361.35pt>
 File: per_class_f1.png Graphic file (type png)
 <use per_class_f1.png>
-Package pdftex.def Info: per_class_f1.png  used on input line 174.
+Package pdftex.def Info: per_class_f1.png  used on input line 176.
 (pdftex.def)             Requested size: 252.0pt x 78.74738pt.
-<confusion_matrices.png, id=33, 1872.39525pt x 899.15926pt>
+<confusion_matrices.png, id=34, 1872.39525pt x 899.15926pt>
 File: confusion_matrices.png Graphic file (type png)
 <use confusion_matrices.png>
-Package pdftex.def Info: confusion_matrices.png  used on input line 181.
+Package pdftex.def Info: confusion_matrices.png  used on input line 183.
 (pdftex.def)             Requested size: 516.0pt x 247.78406pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 211--212
+Underfull \hbox (badness 10000) in paragraph at lines 213--214
 []\T1/ptm/b/n/10 Power: \T1/ptm/m/n/10 The GenX320 sen-sor draws $\OML/cmm/m/it
 /10 < \OT1/cmr/m/n/10 50 []$
  []
 
 
-Underfull \hbox (badness 3148) in paragraph at lines 215--216
+Underfull \hbox (badness 3148) in paragraph at lines 217--218
 \T1/ptm/m/n/10 hard-ware: 24-class ASL recog-ni-tion at 60 FPS max-i-
  []
 
 [3 <./dashboard_screenshot.png (PNG copy)> <./training_curves.png> <./per_class
-_f1.png>] (./machine_vision_report.bbl
-Underfull \hbox (badness 4505) in paragraph at lines 55--58
-[]\T1/ptm/m/n/8 Microsoft, ``ONNX run-time per-for-mance tun-ing for ARM plat-
- []
-
-
-Underfull \hbox (badness 3108) in paragraph at lines 55--58
-\T1/ptm/m/n/8 forms,'' [On-line]. Avail-able: $https : / / onnxruntime . ai / d
-ocs / performance /
- []
-
-) [4 <./confusion_matrices.png>] (./machine_vision_report.aux)
+_f1.png>] (./machine_vision_report.bbl) [4 <./confusion_matrices.png>]
+(./machine_vision_report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8588 strings out of 469515
- 193781 string characters out of 5470807
- 587488 words of memory out of 5000000
- 37152 multiletter control sequences out of 15000+600000
- 744341 words of font info for 155 fonts, out of 8000000 for 9000
+ 9150 strings out of 469515
+ 200379 string characters out of 5470807
+ 588334 words of memory out of 5000000
+ 37691 multiletter control sequences out of 15000+600000
+ 746821 words of font info for 167 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
- 73i,11n,83p,1141b,731s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 73i,11n,83p,1167b,731s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fon
 ts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/fonts/type1/public
@@ -537,14 +548,15 @@ c/amsfonts/cm/cmr9.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cm
 sy10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/
 share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texmf-dis
 t/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texmf-dist/fonts/type1/p
-ublic/amsfonts/cm/cmsy9.pfb></usr/share/texmf-dist/fonts/type1/urw/courier/ucrr
-8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texm
-f-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-dist/fonts/type1/urw
-/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (4 pages, 814707 bytes).
+ublic/amsfonts/cm/cmsy9.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/
+symbols/msbm10.pfb></usr/share/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></
+usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fo
+nts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/ut
+mr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on machine_vision_report.pdf (4 pages, 817740 bytes).
 PDF statistics:
- 123 PDF objects out of 1000 (max. 8388607)
- 69 compressed objects within 1 object stream
+ 128 PDF objects out of 1000 (max. 8388607)
+ 72 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  26 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -46,16 +46,6 @@ J.~Deng \emph{et~al.}, ``{ImageNet}: A large-scale hierarchical image
   database,'' in \emph{Proceedings of the IEEE Conference on Computer Vision
   and Pattern Recognition (CVPR)}, 2009, pp. 248--255.
 
-\bibitem{geekbench2024}
-{Primate Labs}, ``Geekbench 6 browser --- {Raspberry Pi 5} and {AMD Ryzen 7
-  5700X3D} results,'' [Online]. Available: \url{https://browser.geekbench.com},
-  2024.
-
-\bibitem{onnxruntime2024}
-{Microsoft}, ``{ONNX} runtime performance tuning for {ARM} platforms,''
-  [Online]. Available:
-  \url{https://onnxruntime.ai/docs/performance/tune-performance/}, 2024.
-
 \bibitem{geerling2023}
 J.~Geerling, ``{Raspberry Pi 5} review,'' [Online]. Available:
   \url{https://www.jeffgeerling.com/blog/2023/raspberry-pi-5-review}, 2023.

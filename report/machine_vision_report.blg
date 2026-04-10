@@ -13,44 +13,44 @@ Database file #1: machine_vision_report.bib
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
 
 Done.
-You've used 8 entries,
+You've used 6 entries,
             4087 wiz_defined-function locations,
-            862 strings with 8606 characters,
-and the built_in function-call counts, 5285 in all, are:
-= -- 414
-> -- 100
+            853 strings with 8282 characters,
+and the built_in function-call counts, 4575 in all, are:
+= -- 356
+> -- 92
 < -- 40
-+ -- 58
-- -- 16
-* -- 235
-:= -- 799
-add.period$ -- 16
-call.type$ -- 8
-change.case$ -- 8
++ -- 54
+- -- 14
+* -- 215
+:= -- 669
+add.period$ -- 12
+call.type$ -- 6
+change.case$ -- 6
 chr.to.int$ -- 102
-cite$ -- 8
-duplicate$ -- 381
-empty$ -- 462
-format.name$ -- 20
-if$ -- 1222
+cite$ -- 6
+duplicate$ -- 319
+empty$ -- 388
+format.name$ -- 18
+if$ -- 1062
 int.to.chr$ -- 0
-int.to.str$ -- 8
-missing$ -- 68
-newline$ -- 47
-num.names$ -- 8
-pop$ -- 169
+int.to.str$ -- 6
+missing$ -- 54
+newline$ -- 41
+num.names$ -- 6
+pop$ -- 131
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 413
+skip$ -- 353
 stack$ -- 0
-substring$ -- 246
-swap$ -- 290
+substring$ -- 244
+swap$ -- 256
 text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 5
-type$ -- 8
+type$ -- 6
 warning$ -- 0
-while$ -- 24
-width$ -- 9
-write$ -- 92
+while$ -- 22
+width$ -- 7
+write$ -- 76

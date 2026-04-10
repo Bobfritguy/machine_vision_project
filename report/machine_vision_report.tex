@@ -8,6 +8,8 @@
 \usepackage{booktabs}
 \usepackage{siunitx}
 \usepackage{float}
+\usepackage{amssymb}   % for \mathbb
+\usepackage{bbm}       % if you prefer \mathbbm{1}
 \hyphenation{op-tical net-works semi-conduc-tor}
 \begin{document}
 
@@ -89,7 +91,7 @@ An \texttt{EventFrameAugment} transform is applied stochastically to every train
     \item \textbf{Rotation $\pm30^\circ$ + translation $\pm15\%$} (50\%): handles camera angle and hand position variation.
     \item \textbf{Scale 0.7--1.3$\times$ + aspect jitter $\pm15\%$} (50\%): simulates different sensor pixel pitches (\SI{4.86}{\micro\metre} vs \SI{18.5}{\micro\metre}).
     \item \textbf{Contrast scaling 0.6--1.4$\times$} (50\%): simulates different contrast sensitivity.
-    \item \textbf{Event dropout} 20\% of pixels (50\%) and \textbf{Gaussian noise} $\sigma{=}0.05$ (50\%): simulate the GenX320's different noise floor and event density.
+    \item \textbf{Event dropout} 20\% of pixels (50\%) and Gaussian noise $\sigma{=}0.05$ (50\%): simulate the GenX320's different noise floor and event density.
     \item \textbf{Cutout} 15\% patch (30\%): forces recognition from partial views.
 \end{itemize}
 
