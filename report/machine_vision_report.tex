@@ -135,6 +135,10 @@ The deployed system uses the Prophesee Metavision SDK to read \SI{50}{ms} event 
 \section{Testing and Results}
 % ============================================================
 
+\subsection{Evaluation Metrics}
+
+The ASL-DVS test set is perfectly class-balanced (840 samples per class across 24 classes), so top-1 accuracy is a valid primary metric — no class dominates the aggregate figure. We additionally report per-class F1 score (harmonic mean of precision and recall per class) to verify that high aggregate accuracy is not masking failures on specific letters, and row-normalised confusion matrices to identify which specific letter pairs are confused.
+
 \subsection{Training Performance}
 
 Table~\ref{tab:results} gives test-set accuracy for both training configurations on the 20,160-sample ASL-DVS test set. Both runs converge within 5 epochs to above 99\% validation accuracy and plateau near the ceiling. Adding GenX320 data yields a marginal 0.01 pp gain on the clean DAVIS240C test set; the more meaningful benefit is expected at live deployment where the model has seen the GenX320 sensor's noise and aspect-ratio characteristics.
@@ -156,7 +160,14 @@ Table~\ref{tab:results} gives test-set accuracy for both training configurations
 
 Our 1.54M parameter model therefore improves on the prior result by ${\sim}9$ percentage points while being compact enough to run in real time on a single-board computer — a combination that graph-based point-cloud architectures, which carry significant per-sample graph construction overhead and are not optimised for sequential CPU inference, do not readily achieve.
 
-Fig.~\ref{fig:confusion} shows row-normalised confusion matrices for both runs. Both are near-perfect diagonals. Errors concentrate on visually similar pairs, like M/N (finger count over thumb), U/R (parallel vs crossed fingers), and C/S (open vs closed arc) consistent with the inherent ambiguity of these letter pairs in any 2D spatial representation.
+Fig.~\ref{fig:f1} shows per-class F1 scores across all 24 letters. Both models achieve F1$\,{=}\,1.00$ on every class, confirming that the near-perfect aggregate accuracy is not masking failures on any individual letter. Fig.~\ref{fig:confusion} shows row-normalised confusion matrices; the rare residual errors concentrate on visually similar pairs — M/N (finger count over thumb), U/R (parallel vs crossed fingers), and C/S (open vs closed arc) — consistent with the inherent ambiguity of these pairs in any 2D spatial representation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{per_class_f1.png}
+    \caption{Per-class F1 score on the ASL-DVS test set for both training runs. All 24 classes achieve F1\,$=$\,1.00, confirming no class-level failure modes.}
+    \label{fig:f1}
+\end{figure}
 
 \begin{figure*}[t]
     \centering
@@ -208,7 +219,7 @@ A modified MobileNetV3-Small trained on two-channel event frames achieves 99.97-
 \section*{Individual Contributions}
 % ============================================================
 
-This was a two-person project. All code, training, evaluation, and report writing were completed jointly by Séamus Knightly and Luke McCrossan.
+This was a two-person project. Séamus Knightly designed and implemented the full software pipeline (preprocessing, model, training script, live inference, web dashboard), ran all training experiments, and performed benchmarking. Luke McCrossan contributed to hardware setup, GenX320 sensor configuration and bias tuning, recorded training data collection, and live system testing. Report writing was completed jointly.
 
 \bibliographystyle{IEEEtran}
 \bibliography{machine_vision_report.bib}
