@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 14:42
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 16:20
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -411,101 +411,126 @@ Underfull \hbox (badness 4608) in paragraph at lines 42--43
 []\T1/ptm/m/n/10 The Proph-e-see GenX320 event cam-era, fea-tur-ing a
  []
 
+
+Underfull \hbox (badness 3000) in paragraph at lines 51--52
+[]\T1/ptm/m/n/10 Experimental eval-u-a-tion on the ASL-DVS dataset
+ []
+
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fon
 ts/enc/dvips/base/8r.enc}
 
 
-] [2]
-Underfull \hbox (badness 1515) in paragraph at lines 116--117
-[]\T1/ptm/m/n/10 The orig-i-nal MobileNetV3-Small ex-pects three-channel
- []
-
-
-Underfull \hbox (badness 1838) in paragraph at lines 116--117
-\T1/ptm/m/n/10 tional layer to ac-cept two-channel event rep-re-sen-ta-tions
- []
-
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
-29.
-(/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-)
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 13
-7.
-
-(/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
+]
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 10
+0.
+ (/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 10000) in paragraph at lines 145--146
-[]\T1/ptm/b/n/10 Live In-fer-ence \T1/ptm/m/n/10 (\T1/pcr/m/n/10 infer_live.py\
-T1/ptm/m/n/10 ,
+Underfull \hbox (badness 2103) in paragraph at lines 108--109
+[]\T1/ptm/m/n/10 To bridge the do-main gap be-tween the DAVIS240C
  []
 
+[2]
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
+13.
+ (/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+)
+<class_counts.png, id=21, 1156.32pt x 361.35pt>
+File: class_counts.png Graphic file (type png)
+<use class_counts.png>
+Package pdftex.def Info: class_counts.png  used on input line 137.
+(pdftex.def)             Requested size: 252.0pt x 78.74738pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 145--146
-\T1/pcr/m/n/10 infer_web_live.py\T1/ptm/m/n/10 ): Cap-tures events from the
- []
-
-
-Underfull \hbox (badness 1895) in paragraph at lines 145--146
-\T1/ptm/m/n/10 GenX320 us-ing the Metavi-sion EventsIt-er-a-tor, pro-cesses
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 155--156
-[]\T1/ptm/b/n/10 Optional As-pect Ra-tio Crop-ping: \T1/ptm/m/n/10 An op-tional
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 155--156
-\T1/pcr/m/n/10 --crop-to-training-aspect \T1/ptm/m/n/10 flag centre-crops the
- []
-
-
-Underfull \vbox (badness 1383) has occurred while \output is active []
-
- [3]
-Overfull \hbox (2.74193pt too wide) in paragraph at lines 176--190
+Overfull \hbox (0.95795pt too wide) in paragraph at lines 152--166
  [][] 
  []
 
 
-Underfull \hbox (badness 2334) in paragraph at lines 194--195
-[]\T1/ptm/m/n/10 The real-time in-fer-ence pipeline pro-cesses live event
+Underfull \hbox (badness 10000) in paragraph at lines 170--171
+[]\T1/ptm/m/n/10 The sys-tem is or-gan-ised into mod-u-lar Python
  []
 
-[4] (./machine_vision_report.bbl) [5] (./machine_vision_report.aux)
+
+Underfull \hbox (badness 6658) in paragraph at lines 170--171
+\T1/ptm/m/n/10 com-po-nents. \T1/pcr/m/n/10 preprocess.py \T1/ptm/m/n/10 pro-vi
+des the canon-i-cal
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 170--171
+\T1/pcr/m/n/10 events_to_frame() \T1/ptm/m/n/10 func-tion, pa-ram-e-terised by 
+a
+ []
+
+
+Underfull \hbox (badness 6157) in paragraph at lines 170--171
+\T1/pcr/m/n/10 PreprocessConfig \T1/ptm/m/n/10 dat-a-class that is shared acros
+s
+ []
+
+
+Underfull \hbox (badness 4647) in paragraph at lines 170--171
+\T1/ptm/m/n/10 se-ri-alises \T1/pcr/m/n/10 PreprocessConfig \T1/ptm/m/n/10 into
+ ev-ery check-point.
+ []
+
+
+Underfull \hbox (badness 2213) in paragraph at lines 170--171
+\T1/pcr/m/n/10 infer_web_live.py \T1/ptm/m/n/10 runs a Flask server that reads
+ []
+
+[3 <./class_counts.png>]
+<training_curves.png, id=32, 867.24pt x 289.08pt>
+File: training_curves.png Graphic file (type png)
+<use training_curves.png>
+Package pdftex.def Info: training_curves.png  used on input line 191.
+(pdftex.def)             Requested size: 252.0pt x 83.99866pt.
+
+Overfull \hbox (6.35872pt too wide) in paragraph at lines 204--214
+ [][] 
+ []
+
+<confusion_matrices.png, id=33, 1872.39525pt x 899.15926pt>
+File: confusion_matrices.png Graphic file (type png)
+<use confusion_matrices.png>
+Package pdftex.def Info: confusion_matrices.png  used on input line 222.
+(pdftex.def)             Requested size: 252.0pt x 121.01082pt.
+[4 <./training_curves.png> <./confusion_matrices.png>]
+(./machine_vision_report.bbl) [5
+
+] (./machine_vision_report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8612 strings out of 469515
- 193949 string characters out of 5470807
- 588133 words of memory out of 5000000
- 37175 multiletter control sequences out of 15000+600000
- 744300 words of font info for 152 fonts, out of 8000000 for 9000
+ 8646 strings out of 469515
+ 194665 string characters out of 5470807
+ 588154 words of memory out of 5000000
+ 37206 multiletter control sequences out of 15000+600000
+ 744341 words of font info for 155 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
- 73i,11n,83p,1339b,729s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 73i,11n,83p,1010b,615s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/font
-s/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texmf-dist/fonts/type1/public/
-amsfonts/cm/cmr10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr
-6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/shar
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-dist/fon
-ts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/publi
-c/amsfonts/cm/cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/c
-msy7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/
-share/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/font
-s/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmbi
-8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texm
-f-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (5 pages, 201892 bytes).
+s/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmr6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7
+.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texmf-dist/font
+s/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+sy7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/s
+hare/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf-dist
+/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/time
+s/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/sha
+re/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/typ
+e1/urw/times/utmri8a.pfb>
+Output written on machine_vision_report.pdf (5 pages, 388112 bytes).
 PDF statistics:
- 101 PDF objects out of 1000 (max. 8388607)
- 61 compressed objects within 1 object stream
+ 113 PDF objects out of 1000 (max. 8388607)
+ 65 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -41,6 +41,12 @@ A.~Amir \emph{et~al.}, ``A low power, fully event-based gesture recognition
   system,'' in \emph{Proceedings of the IEEE Conference on Computer Vision and
   Pattern Recognition (CVPR)}, 2017, pp. 7243--7252.
 
+\bibitem{bi2019}
+Y.~Bi, A.~Chadha, A.~Abbas, E.~Bourtsoulatze, and Y.~Andreopoulos,
+  ``Graph-based object classification for neuromorphic vision sensing,'' in
+  \emph{Proceedings of the IEEE/CVF International Conference on Computer Vision
+  (ICCV)}, 2019, pp. 491--501.
+
 \bibitem{howard2019}
 A.~Howard \emph{et~al.}, ``Searching for {MobileNetV3},'' in \emph{Proceedings
   of the IEEE/CVF International Conference on Computer Vision (ICCV)}, 2019,

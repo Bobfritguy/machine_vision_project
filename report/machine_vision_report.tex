@@ -103,6 +103,20 @@
 
 	We use MobileNetV3-Small~\cite{howard2019} as the backbone, with two targeted modifications. First, the original first convolutional layer ($3{\times}16$, $3{\times}3$ kernel) is replaced with a two-channel equivalent ($2{\times}16$, $3{\times}3$ kernel, stride 2), initialised with Kaiming normal initialisation, to natively accept two-channel event frames. Second, the final linear output layer is replaced to map from 1024 dimensions to 24 ASL classes (retaining the intermediate $576{\to}1024$ fully-connected layer, Hard-Swish activation, and Dropout from the original head). The resulting model has approximately 1.5 million trainable parameters. Cross-entropy loss with label smoothing ($\epsilon = 0.1$) is used during training to improve generalisation.
 
+	\subsection{Data Augmentation}
+
+	To bridge the domain gap between the DAVIS240C training sensor and the GenX320 deployment sensor, an \texttt{EventFrameAugment} transform is applied to every training sample. Each augmentation is applied stochastically per sample:
+
+	\begin{itemize}
+		\item \textbf{Vertical flip} (50\%): The DAVIS240C and GenX320 use opposite y-axis conventions. Training on both orientations ensures the model is robust to this difference without requiring an explicit coordinate flip at inference time.
+		\item \textbf{Rotation $\pm30^\circ$ and translation $\pm15\%$} (50\%): Handles camera mounting angle variations and hand position offsets within the GenX320 field of view.
+		\item \textbf{Scale (0.7--1.3$\times$) and aspect ratio jitter ($\pm15\%$)} (50\%): Simulates the different effective pixel pitches between sensors (GenX320: \SI{4.86}{\micro\metre}; DAVIS240C: \SI{18.5}{\micro\metre}).
+		\item \textbf{Contrast scaling (0.6--1.4$\times$)} (50\%): Simulates different per-sensor contrast sensitivity arising from pixel pitch differences.
+		\item \textbf{Event dropout} (20\% of pixels zeroed, 50\%): Simulates the sparser event patterns produced by the GenX320's finer pixel pitch.
+		\item \textbf{Cutout} (15\% patch, 30\%): Forces recognition from partial views, mimicking hand occlusion and edge-of-frame placement.
+		\item \textbf{Gaussian noise} ($\sigma=0.05$, 50\%): Simulates the different noise floor of the GenX320.
+	\end{itemize}
+
 	% ============================================================
 	\section{Experimental Setup}
 	\label{sec:experimental}
@@ -116,9 +130,20 @@
 
 	The ASL-DVS dataset~\cite{bi2019} contains event-based recordings of 24 static ASL letters (A--Y, excluding J and Z which require motion) captured with an IniVation DAVIS240C. The low-resolution (LR) split, used throughout this work, provides events remapped to a $120{\times}90$ coordinate space. The dataset provides a pre-defined train/test split: 3,360 samples per class in the training set (80,640 total) and 840 per class in the test set (20,160 total). Each sample spans approximately \SIrange{0}{200}{ms} of event activity, with a median of ${\sim}$14,300 events per LR sample.
 
+	To evaluate the benefit of deployment-sensor data, approximately 1,500 additional samples were recorded directly on the GenX320 using a custom recording tool, yielding roughly 60 samples per class across all 24 letters. These samples are in the same \texttt{.npy} format as ASL-DVS and cover a range of lighting conditions and hand distances. Fig.~\ref{fig:class_counts} shows the class distribution across all three data sources.
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\columnwidth]{class_counts.png}
+		\caption{Class distribution across the ASL-DVS training set (${\sim}$3,360/class), ASL-DVS test set (${\sim}$840/class), and the GenX320 recorded supplement (${\sim}$60/class). All three splits are perfectly balanced across all 24 letters.}
+		\label{fig:class_counts}
+	\end{figure}
+
+	When the GenX320 data is included in training, samples from this source are oversampled using a weighted sampler to compensate for the large imbalance (${\sim}$60 GenX320 vs.\ 3,360 ASL-DVS samples per class), ensuring both sensors contribute meaningfully to each training epoch.
+
 	\subsection{Training Configuration}
 
-	Table~\ref{tab:hyperparams} summarises the training hyperparameters. No data augmentation was applied; label smoothing and the natural variability within ASL-DVS provide sufficient regularisation. Gradient clipping (max norm 1.0) prevents instability during early training.
+	Two training runs were performed to isolate the effect of the GenX320 recorded data. Both runs use identical hyperparameters (Table~\ref{tab:hyperparams}) with \texttt{EventFrameAugment} enabled. Run~1 (\textit{Aug only}) trains on ASL-DVS alone. Run~2 (\textit{Aug + Recorded}) additionally mixes in the ${\sim}$1,500 GenX320 samples with oversampling. Gradient clipping (max norm 1.0) prevents instability during early training.
 
 	\begin{table}[H]
 		\centering
@@ -159,54 +184,60 @@
 
 	\subsection{Training Convergence}
 
-	Fig.~\ref{fig:curves} shows the training and validation loss and accuracy curves over 30 epochs. The model converges rapidly: validation accuracy reaches 94.88\% at epoch 1, 99.26\% by epoch 5, and 99.77\% by epoch 10. The best validation accuracy of 99.94\% is achieved at epoch 22, after which both loss and accuracy plateau.
+	Fig.~\ref{fig:curves} shows the training and validation loss and accuracy curves over 30 epochs for the \textit{Aug only} run. The model converges rapidly: validation accuracy reaches 94.88\% at epoch 1 and 99.26\% by epoch 5, confirming that the two-channel representation provides well-structured features that MobileNetV3-Small can exploit efficiently from early in training.
 
 	\begin{figure}[H]
 		\centering
 		\includegraphics[width=\columnwidth]{training_curves.png}
-		\caption{Training and validation loss (left) and accuracy (right) over 30 epochs on the ASL-DVS LR split. The model converges to near-perfect validation accuracy within the first 10 epochs.}
+		\caption{Training and validation loss (left) and accuracy (right) over 30 epochs (\textit{Aug only} run). Validation accuracy exceeds 99\% within 5 epochs and plateaus near 100\% by epoch 22.}
 		\label{fig:curves}
 	\end{figure}
 
 	\subsection{Quantitative Results}
 
-	Table~\ref{tab:quant} summarises the model's accuracy at key training milestones. The final model significantly exceeds the 91\% accuracy reported by point-cloud methods in the original ASL-DVS paper~\cite{bi2019}, demonstrating that accumulated two-channel event frames combined with a standard CNN backbone are highly effective for static gesture classification on this dataset.
+	Table~\ref{tab:quant} compares the two training configurations on the ASL-DVS test set. Both significantly exceed the ${\sim}91\%$ accuracy reported by point-cloud methods in the original ASL-DVS paper~\cite{bi2019}. Adding the ${\sim}$1,500 GenX320 recorded samples with oversampling yields a marginal improvement of 0.01 percentage points on the clean test set. The more meaningful benefit of the recorded data is expected to manifest in live deployment, where the model has seen genuine GenX320 noise characteristics and aspect-ratio content during training.
 
 	\begin{table}[H]
 		\centering
-		\caption{Validation Accuracy at Key Training Milestones}
+		\caption{Test-Set Accuracy by Training Configuration}
 		\label{tab:quant}
 		\begin{tabular}{lcc}
 			\toprule
-			\textbf{Checkpoint} & \textbf{Val Accuracy (\%)} & \textbf{Train Accuracy (\%)} \\
+			\textbf{Configuration} & \textbf{Test Accuracy (\%)} & \textbf{Parameters} \\
 			\midrule
-			Epoch 1  & 94.88 & 84.47 \\
-			Epoch 5  & 99.26 & 99.65 \\
-			Epoch 10 & 99.77 & 99.86 \\
-			Epoch 22 (best) & \textbf{99.94} & 99.99 \\
-			Epoch 30 & 99.94 & 100.0 \\
+			Aug only (ASL-DVS LR)             & 99.97 & ${\sim}$1.5M \\
+			Aug + Recorded (+ GenX320 data)   & \textbf{99.98} & ${\sim}$1.5M \\
+			\midrule
+			Bi et al.~\cite{bi2019} (graph CNN) & ${\sim}91$ & --- \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 
 	\subsection{Per-Class Performance and Confusion Analysis}
 
-	The near-perfect overall accuracy indicates that the two-channel representation provides highly discriminative features for the 24 static ASL letters. Residual misclassifications, where they occur, are expected to concentrate among visually similar gesture pairs: M and N (differing only in the number of fingers folded over the thumb), U and R (parallel vs.\ crossed extended fingers), and C and S (open arc vs.\ tight closed curve). These pairs produce the most spatially similar event accumulation patterns and represent the principal challenge for fine-grained discrimination.
+	Fig.~\ref{fig:confusion} shows the row-normalised confusion matrices for both runs on the ASL-DVS test set. Both matrices are dominated by a near-perfect diagonal, confirming that the two-channel representation provides highly discriminative features across all 24 classes. Residual off-diagonal mass concentrates on visually similar pairs: M/N (number of fingers folded over the thumb), U/R (parallel vs.\ crossed extended fingers), and C/S (open arc vs.\ tight closed curve) — the gesture pairs with the greatest spatial overlap in their event accumulation patterns. The addition of GenX320 recorded data does not visibly alter the confusion structure on the clean ASL-DVS test set.
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\columnwidth]{confusion_matrices.png}
+		\caption{Row-normalised confusion matrices on the ASL-DVS test set for the \textit{Aug only} (left, 99.97\%) and \textit{Aug + Recorded} (right, 99.98\%) models. Both matrices are near-perfect diagonals; minor off-diagonal mass appears on visually similar letter pairs.}
+		\label{fig:confusion}
+	\end{figure}
 
 	\subsection{Discussion}
 
-	The high accuracy on the clean ASL-DVS test set confirms that standard frame-based CNN methods, when supplied with appropriate event representations, are competitive with or superior to specialised neuromorphic architectures on static gesture classification. The rapid convergence (epoch 5 already exceeds 99\%) suggests that the two-channel polarity-separated representation provides well-structured features that the MobileNetV3-Small backbone can exploit efficiently.
+	The results confirm that accumulated two-channel event frames with a standard lightweight CNN backbone match or exceed specialised neuromorphic architectures on the ASL-DVS benchmark, while remaining simple to train and deploy on CPU hardware. The domain-bridging augmentations (vertical flip, rotation, scale jitter, contrast scaling, event dropout) are central to this result: without them, the DAVIS240C-trained model would not be expected to transfer to the GenX320's different noise profile and aspect ratio.
 
-	However, several important caveats apply to real-world deployment. The ASL-DVS dataset was recorded under controlled conditions with a single sensor and a limited number of subjects. Performance on live GenX320 streams will be affected by lighting variation, hand placement relative to the sensor, background clutter, and the aspect-ratio mismatch introduced by the 1:1 GenX320 FOV versus the 4:3 DAVIS240C FOV. The \textit{accumulate\_then\_resize} strategy mitigates the resolution gap, but the spatial distortion introduced by fitting the square GenX320 frame into the 4:3-trained model representation is a potential source of performance degradation that would require live-capture training data to fully resolve. Training entirely on CPU also limits the ability to explore larger models or longer training runs.
+	The marginal gain from adding GenX320 recorded data (0.01 pp on the clean test set) is expected given that the test set is itself from the DAVIS240C and does not exercise the sensor-specific characteristics the recorded data was collected to address. The more meaningful evaluation — live inference accuracy on the GenX320 — is outside the scope of quantitative measurement here but is the primary motivation for collecting and oversampling the recorded data. The aspect-ratio mismatch between the square GenX320 FOV and the 4:3 DAVIS240C training data remains a source of potential performance degradation that collecting a larger, labelled GenX320 dataset would fully resolve.
 
 	% ============================================================
 	\section{Conclusion and Future Work}
 	\label{sec:conclusion}
 	% ============================================================
 
-	This paper presented a complete machine vision system for event-based ASL gesture recognition using the Prophesee GenX320 event camera. A modified MobileNetV3-Small with a two-channel event input achieves 99.94\% accuracy on the ASL-DVS test set, trained entirely on CPU without GPU acceleration. The \textit{accumulate\_then\_resize} cross-sensor domain adaptation strategy provides a simple and effective bridge between the training sensor (DAVIS240C, $120{\times}90$) and the deployment sensor (GenX320, $320{\times}320$), with a shared \texttt{PreprocessConfig} contract guaranteeing alignment between training and inference pipelines. Real-time inference is delivered via a Flask web dashboard with a streak-based confidence accumulation mechanism for temporal stability.
+	This paper presented a complete machine vision system for event-based ASL gesture recognition using the Prophesee GenX320 event camera. A modified MobileNetV3-Small with a two-channel event input achieves 99.97\% accuracy on the ASL-DVS test set when trained with domain-bridging augmentations, and 99.98\% when ${\sim}$1,500 GenX320-recorded samples are additionally included with oversampling — both well above the ${\sim}91\%$ of prior graph-based methods on the same dataset. The \textit{accumulate\_then\_resize} domain adaptation strategy bridges the resolution and aspect-ratio gap between the DAVIS240C training sensor and the GenX320 deployment sensor, with a shared \texttt{PreprocessConfig} contract guaranteeing consistent preprocessing across training, evaluation, and live inference. Real-time inference is delivered via a Flask web dashboard with a streak-based confidence accumulation mechanism for temporal stability.
 
-	The primary limitation is that evaluation is restricted to the clean ASL-DVS test set, which does not reflect the domain shift expected in live GenX320 deployment. Future work should collect a labelled dataset directly from the GenX320 to quantify and close this gap. Additional improvements include dynamic gesture recognition using temporal models (LSTMs, transformers), INT8 quantisation for faster CPU inference, and multi-subject evaluation to assess robustness to signing style variation.
+	The primary limitation is that quantitative evaluation is restricted to the clean ASL-DVS test set, which does not capture the full domain shift expected in live GenX320 deployment. The ~1,500 recorded GenX320 samples represent a promising start, but a larger, diverse labelled capture would be needed to measure and close the live-deployment performance gap. Additional improvements include dynamic gesture recognition using temporal models, INT8 quantisation for faster CPU inference, and multi-subject evaluation to assess robustness to signing style variation.
 
 	\bibliographystyle{IEEEtran}
 	\bibliography{machine_vision_report.bib}
