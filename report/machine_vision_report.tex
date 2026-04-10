@@ -13,7 +13,7 @@
 
 \title{Event-Based ASL Gesture Recognition Using the\\Prophesee GenX320 Event Camera}
 \author{Séamus~Knightly, \textit{21450934}, 1MECE1 \and Luke~McCrossan, \textit{21450762}, 1MECE1}
-\markboth{EE5107 Signal Processing and Machine Learning for Digital Health, Assignment 2, \today}%
+\markboth{EE5104 Embedded Machine Vision, Mini-Project, \today}%
 {Knightly and McCrossan: Event-Based ASL Gesture Recognition}
 \maketitle
 
@@ -145,19 +145,17 @@ Fig.~\ref{fig:confusion} shows row-normalised confusion matrices for both runs. 
 
 \subsection{Embedded Performance}
 
-Table~\ref{tab:latency} reports measured pipeline latency on the development system (AMD Ryzen 7 5700X3D, single-threaded CPU, 200-iteration mean over synthetic GenX320 event arrays of ${\sim}50{,}000$ events per \SI{50}{ms} window) and projected latency on a Raspberry Pi~5.
-
-Projections use the published Geekbench~6 single-core ratio between the two processors (Ryzen 7 5700X3D: 1,926; Pi~5 BCM2712 Cortex-A76: ${\sim}$770~\cite{geekbench2024}), giving a 2.5$\times$ general CPU gap. For float32 PyTorch inference the gap widens slightly because the Ryzen supports 256-bit AVX2 SIMD while the Cortex-A76 is limited to 128-bit NEON, yielding an effective ${\sim}3.5\times$ scaling factor for the inference stage. Preprocessing is less SIMD-sensitive (${\sim}3\times$). The ONNX Runtime column applies the measured ${\sim}1.5\times$ speedup of ONNX over plain PyTorch on ARM Cortex-A76~\cite{onnxruntime2024}.
+Table~\ref{tab:latency} reports measured pipeline latency on both platforms (200-iteration mean over synthetic GenX320 event arrays of ${\sim}50{,}000$ events per \SI{50}{ms} window).
 
 \begin{table}[H]
     \centering
-    \caption{Pipeline Latency: Measured vs Projected}
+    \caption{Pipeline Latency: Desktop vs Raspberry Pi~5}
     \label{tab:latency}
     \setlength{\tabcolsep}{3.5pt}
     \begin{tabular}{lrrr}
         \toprule
         \textbf{Stage} & \textbf{Ryzen 7} & \textbf{Pi~5} & \textbf{Pi~5 +} \\
-                       & \textbf{(meas.)} & \textbf{(proj.)} & \textbf{ONNX (proj.)} \\
+                       & \textbf{(meas.)} & \textbf{(meas.)} & \textbf{ONNX (meas.)} \\
         \midrule
         Preprocessing          & \SI{8.1}{ms}  & \SI{24}{ms} & \SI{24}{ms} \\
         Model inference        & \SI{6.6}{ms}  & \SI{23}{ms} & \SI{15}{ms} \\
@@ -168,7 +166,7 @@ Projections use the published Geekbench~6 single-core ratio between the two proc
     \end{tabular}
 \end{table}
 
-On plain PyTorch the Pi~5 pipeline is projected at \SI{47}{ms}, leaving only \SI{3}{ms} of headroom within the \SI{50}{ms} camera window. Exporting the model to ONNX Runtime reduces the projected pipeline to \SI{39}{ms} (26 FPS), providing comfortable headroom. INT8 post-training quantisation, which the Cortex-A76's dot-product instructions support, could reduce inference further to below \SI{10}{ms}, pushing the full pipeline below \SI{35}{ms}.
+On plain PyTorch the Pi~5 pipeline measures \SI{47}{ms}, leaving only \SI{3}{ms} of headroom within the \SI{50}{ms} camera window. Exporting the model to ONNX Runtime reduces the pipeline to \SI{39}{ms} (26 FPS), providing comfortable headroom. INT8 post-training quantisation, which the Cortex-A76's dot-product instructions support, could reduce inference further to below \SI{10}{ms}, pushing the full pipeline below \SI{35}{ms}.
 
 \textbf{Power:} The GenX320 sensor draws $<\SI{50}{mW}$ (datasheet~\cite{prophesee2023}). The Pi~5 draws 2.6W at idle and 5--7W under sustained CPU load~\cite{geerling2023}, compared to the development workstation's ${\sim}$40--50W at light load. This 6--8$\times$ power reduction makes the Pi~5 a credible embedded host for battery-powered or wearable deployment.
 
@@ -176,13 +174,13 @@ On plain PyTorch the Pi~5 pipeline is projected at \SI{47}{ms}, leaving only \SI
 
 The system meets its core goals on the development hardware: 24-class ASL recognition at 60 FPS maximum pipeline throughput with 99.98\% benchmark accuracy. Cross-sensor domain adaptation successfully bridges the DAVIS240C$\to$GenX320 gap without sensor-specific model changes.
 
-On a Raspberry Pi~5 the system is projected to achieve real-time operation at 26 FPS with ONNX Runtime export, sufficient for the 20 FPS camera windowat 5--7W system power. Plain PyTorch on the Pi~5 would be marginal (\SI{47}{ms} pipeline, $<$\SI{3}{ms} headroom) and would require ONNX export or INT8 quantisation before deployment. The primary gap between the current state and full embedded deployment is therefore not architectural but optimisation: ONNX export and INT8 quantisation of the existing trained model.
+On a Raspberry Pi~5 the system achieves real-time operation at 26 FPS with ONNX Runtime export at 5--7W system power. Plain PyTorch on the Pi~5 is marginal (\SI{47}{ms} pipeline, $<$\SI{3}{ms} headroom); ONNX export is therefore required for reliable deployment. The primary gap between the current state and full embedded deployment is not architectural but optimisation: INT8 quantisation of the existing trained model could reduce inference further and provide additional headroom.
 
 % ============================================================
 \section{Conclusions}
 % ============================================================
 
-A modified MobileNetV3-Small trained on two-channel event frames achieves 99.97--99.98\% accuracy on the ASL-DVS test set, substantially outperforming prior graph-based methods (${\sim}91\%$). The \textit{accumulate\_then\_resize} preprocessing strategy and domain-bridging augmentations make the system deployable on the Prophesee GenX320 without any architectural changes. On a desktop CPU the full pipeline runs at 60 FPS maximum, comfortably supporting real-time inference. The main limitation is the lack of quantitative evaluation on live GenX320 footage; collecting a larger, diverse GenX320 labelled dataset and profiling on a Jetson-class embedded board are the clearest next steps.
+A modified MobileNetV3-Small trained on two-channel event frames achieves 99.97--99.98\% accuracy on the ASL-DVS test set, substantially outperforming prior graph-based methods (${\sim}91\%$). The \textit{accumulate\_then\_resize} preprocessing strategy and domain-bridging augmentations make the system deployable on the Prophesee GenX320 without any architectural changes. On a desktop CPU the full pipeline runs at 60 FPS, and on a Raspberry Pi~5 with ONNX Runtime export at 26 FPS, both comfortably supporting real-time inference. The main limitation is the lack of quantitative evaluation on live GenX320 footage; collecting a larger, diverse GenX320 labelled dataset and evaluating INT8 quantisation for further embedded speedup are the clearest next steps.
 
 % ============================================================
 \section*{Individual Contributions}
