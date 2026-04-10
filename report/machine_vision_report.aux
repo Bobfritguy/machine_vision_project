@@ -1,64 +1,49 @@
 \relax 
 \citation{lichtsteiner2008}
-\citation{posch2011}
 \citation{prophesee2023}
-\citation{amir2017}
 \citation{bi2019}
-\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{1}{}\protected@file@percent }
-\newlabel{sec:related}{{II}{1}{}{section.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Event-Based Vision and Neuromorphic Cameras}{1}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}ASL Gesture Recognition Approaches}{1}{}\protected@file@percent }
 \citation{howard2019}
 \citation{deng2009}
-\citation{tan2019}
-\citation{howard2019}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Lightweight CNNs for Edge Deployment}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {III}Methodology}{2}{}\protected@file@percent }
-\newlabel{sec:methodology}{{III}{2}{}{section.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Event Camera Principles and Data Format}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Event Representation Strategies}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Preprocessing Pipeline}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Model Architecture}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-E}}Data Augmentation}{2}{}\protected@file@percent }
 \citation{bi2019}
-\@writefile{toc}{\contentsline {section}{\numberline {IV}Experimental Setup}{3}{}\protected@file@percent }
-\newlabel{sec:experimental}{{IV}{3}{}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Hardware and Software Environment}{3}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Dataset}{3}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Class distribution across the ASL-DVS training set (${\sim }$3,360/class), ASL-DVS test set (${\sim }$840/class), and the GenX320 recorded supplement (${\sim }$60/class). All three splits are perfectly balanced across all 24 letters.}}{3}{}\protected@file@percent }
-\newlabel{fig:class_counts}{{1}{3}{}{figure.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Training Configuration}{3}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Training Hyperparameters}}{3}{}\protected@file@percent }
-\newlabel{tab:hyperparams}{{I}{3}{}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Software Architecture}{3}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Cross-Sensor Domain Adaptation}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Background Research}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Event Cameras and ASL-DVS}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Event Representations}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Model Architecture}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-D}}Cross-Sensor Domain Adaptation}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Methodology}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Preprocessing and Training Pipeline}{1}{}\protected@file@percent }
 \citation{bi2019}
-\citation{bi2019}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-F}}Real-Time Inference Pipeline}{4}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {V}Results and Discussion}{4}{}\protected@file@percent }
-\newlabel{sec:results}{{V}{4}{}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Training Convergence}{4}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Training and validation loss (left) and accuracy (right) over 30 epochs (\textit  {Aug only} run). Validation accuracy exceeds 99\% within 5 epochs and plateaus near 100\% by epoch 22.}}{4}{}\protected@file@percent }
-\newlabel{fig:curves}{{2}{4}{}{figure.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Quantitative Results}{4}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Test-Set Accuracy by Training Configuration}}{4}{}\protected@file@percent }
-\newlabel{tab:quant}{{II}{4}{}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Per-Class Performance and Confusion Analysis}{4}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Row-normalised confusion matrices on the ASL-DVS test set for the \textit  {Aug only} (left, 99.97\%) and \textit  {Aug + Recorded} (right, 99.98\%) models. Both matrices are near-perfect diagonals; minor off-diagonal mass appears on visually similar letter pairs.}}{4}{}\protected@file@percent }
-\newlabel{fig:confusion}{{3}{4}{}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Discussion}{4}{}\protected@file@percent }
+\citation{geekbench2024}
+\citation{onnxruntime2024}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Data Augmentation for Domain Adaptation}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}GenX320 Recorded Data}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Training}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Training Hyperparameters}}{2}{}\protected@file@percent }
+\newlabel{tab:hyperparams}{{I}{2}{}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-E}}Live Inference System}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Testing and Results}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Training Performance}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Test-Set Accuracy vs Prior Work}}{2}{}\protected@file@percent }
+\newlabel{tab:results}{{II}{2}{}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Embedded Performance}{2}{}\protected@file@percent }
+\citation{prophesee2023}
+\citation{geerling2023}
 \bibstyle{IEEEtran}
 \bibdata{machine_vision_report.bib}
 \bibcite{lichtsteiner2008}{1}
-\bibcite{posch2011}{2}
-\bibcite{prophesee2023}{3}
-\bibcite{amir2017}{4}
-\bibcite{bi2019}{5}
-\bibcite{howard2019}{6}
-\bibcite{deng2009}{7}
-\bibcite{tan2019}{8}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Conclusion and Future Work}{5}{}\protected@file@percent }
-\newlabel{sec:conclusion}{{VI}{5}{}{section.6}{}}
-\@writefile{toc}{\contentsline {section}{References}{5}{}\protected@file@percent }
-\gdef \@abspage@last{5}
+\bibcite{prophesee2023}{2}
+\bibcite{bi2019}{3}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Row-normalised confusion matrices on the ASL-DVS test set: \textit  {Aug only} (left, 99.97\%) and \textit  {Aug + Recorded} (right, 99.98\%). Both models show near-perfect diagonals across all 24 classes.}}{3}{}\protected@file@percent }
+\newlabel{fig:confusion}{{1}{3}{}{figure.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Pipeline Latency: Measured vs Projected}}{3}{}\protected@file@percent }
+\newlabel{tab:latency}{{III}{3}{}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Requirements Evaluation}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Conclusions}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{References}{3}{}\protected@file@percent }
+\bibcite{howard2019}{4}
+\bibcite{deng2009}{5}
+\bibcite{geekbench2024}{6}
+\bibcite{onnxruntime2024}{7}
+\bibcite{geerling2023}{8}
+\gdef \@abspage@last{4}

@@ -15,42 +15,42 @@ Database file #1: machine_vision_report.bib
 Done.
 You've used 8 entries,
             4087 wiz_defined-function locations,
-            865 strings with 8620 characters,
-and the built_in function-call counts, 7092 in all, are:
-= -- 561
-> -- 146
-< -- 73
-+ -- 88
-- -- 20
-* -- 339
-:= -- 993
+            862 strings with 8606 characters,
+and the built_in function-call counts, 5285 in all, are:
+= -- 414
+> -- 100
+< -- 40
++ -- 58
+- -- 16
+* -- 235
+:= -- 799
 add.period$ -- 16
 call.type$ -- 8
 change.case$ -- 8
-chr.to.int$ -- 186
+chr.to.int$ -- 102
 cite$ -- 8
-duplicate$ -- 482
-empty$ -- 584
-format.name$ -- 27
-if$ -- 1669
+duplicate$ -- 381
+empty$ -- 462
+format.name$ -- 20
+if$ -- 1222
 int.to.chr$ -- 0
 int.to.str$ -- 8
-missing$ -- 75
+missing$ -- 68
 newline$ -- 47
 num.names$ -- 8
-pop$ -- 174
+pop$ -- 169
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 549
+skip$ -- 413
 stack$ -- 0
-substring$ -- 442
-swap$ -- 412
-text.length$ -- 11
+substring$ -- 246
+swap$ -- 290
+text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 5
 type$ -- 8
 warning$ -- 0
-while$ -- 36
+while$ -- 24
 width$ -- 9
-write$ -- 97
+write$ -- 92

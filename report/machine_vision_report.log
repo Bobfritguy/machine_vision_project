@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 16:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 17:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -139,13 +139,6 @@ File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
 \Gin@req@height=\dimen172
 \Gin@req@width=\dimen173
 )
-(/usr/share/texmf-dist/tex/latex/multirow/multirow.sty
-Package: multirow 2024/11/12 v2.9 Span multiple rows of a table
-\multirow@colwidth=\skip52
-\multirow@cntb=\count290
-\multirow@dima=\skip53
-\bigstrutjot=\dimen174
-)
 (/usr/share/texmf-dist/tex/latex/xcolor/xcolor.sty
 Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)
 
@@ -170,17 +163,17 @@ Package: colortbl 2024/10/29 v1.0k Color table columns (DPC)
 
 (/usr/share/texmf-dist/tex/latex/tools/array.sty
 Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
-\col@sep=\dimen175
+\col@sep=\dimen174
 \ar@mcellbox=\box55
-\extrarowheight=\dimen176
+\extrarowheight=\dimen175
 \NC@list=\toks19
-\extratabsurround=\skip54
-\backup@length=\skip55
+\extratabsurround=\skip52
+\backup@length=\skip53
 \ar@cellbox=\box56
 )
 \everycr=\toks20
-\minrowclearance=\skip56
-\rownum=\count291
+\minrowclearance=\skip54
+\rownum=\count290
 )
 (/usr/share/texmf-dist/tex/latex/url/url.sty
 \Urlmuskip=\muskip17
@@ -201,7 +194,7 @@ Package: inputenc 2024/02/08 v1.3d Input encoding file
 )
 (/usr/share/texmf-dist/tex/latex/amsmath/amsmath.sty
 Package: amsmath 2025/07/09 v2.17z AMS math features
-\@mathmargin=\skip57
+\@mathmargin=\skip55
 
 For additional information on amsmath, use the `?' option.
 (/usr/share/texmf-dist/tex/latex/amsmath/amstext.sty
@@ -210,23 +203,23 @@ Package: amstext 2024/11/17 v2.01 AMS text
 (/usr/share/texmf-dist/tex/latex/amsmath/amsgen.sty
 File: amsgen.sty 1999/11/30 v2.0 generic functions
 \@emptytoks=\toks23
-\ex@=\dimen177
+\ex@=\dimen176
 ))
 (/usr/share/texmf-dist/tex/latex/amsmath/amsbsy.sty
 Package: amsbsy 1999/11/29 v1.2d Bold Symbols
-\pmbraise@=\dimen178
+\pmbraise@=\dimen177
 )
 (/usr/share/texmf-dist/tex/latex/amsmath/amsopn.sty
 Package: amsopn 2022/04/08 v2.04 operator names
 )
-\inf@bad=\count292
+\inf@bad=\count291
 LaTeX Info: Redefining \frac on input line 233.
-\uproot@=\count293
-\leftroot@=\count294
+\uproot@=\count292
+\leftroot@=\count293
 LaTeX Info: Redefining \overline on input line 398.
 LaTeX Info: Redefining \colon on input line 409.
-\classnum@=\count295
-\DOTSCASE@=\count296
+\classnum@=\count294
+\DOTSCASE@=\count295
 LaTeX Info: Redefining \ldots on input line 495.
 LaTeX Info: Redefining \dots on input line 498.
 LaTeX Info: Redefining \cdots on input line 619.
@@ -236,73 +229,73 @@ LaTeX Info: Redefining \big on input line 721.
 LaTeX Info: Redefining \Big on input line 722.
 LaTeX Info: Redefining \bigg on input line 723.
 LaTeX Info: Redefining \Bigg on input line 724.
-\big@size=\dimen179
+\big@size=\dimen178
 LaTeX Font Info:    Redeclaring font encoding OML on input line 742.
 LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.
-\macc@depth=\count297
+\macc@depth=\count296
 LaTeX Info: Redefining \bmod on input line 904.
 LaTeX Info: Redefining \pmod on input line 909.
 LaTeX Info: Redefining \smash on input line 939.
 LaTeX Info: Redefining \relbar on input line 969.
 LaTeX Info: Redefining \Relbar on input line 970.
-\c@MaxMatrixCols=\count298
+\c@MaxMatrixCols=\count297
 \dotsspace@=\muskip18
-\c@parentequation=\count299
-\dspbrk@lvl=\count300
+\c@parentequation=\count298
+\dspbrk@lvl=\count299
 \tag@help=\toks24
-\row@=\count301
-\column@=\count302
-\maxfields@=\count303
+\row@=\count300
+\column@=\count301
+\maxfields@=\count302
 \andhelp@=\toks25
-\eqnshift@=\dimen180
-\alignsep@=\dimen181
-\tagshift@=\dimen182
-\tagwidth@=\dimen183
-\totwidth@=\dimen184
-\lineht@=\dimen185
+\eqnshift@=\dimen179
+\alignsep@=\dimen180
+\tagshift@=\dimen181
+\tagwidth@=\dimen182
+\totwidth@=\dimen183
+\lineht@=\dimen184
 \@envbody=\toks26
-\multlinegap=\skip58
-\multlinetaggap=\skip59
+\multlinegap=\skip56
+\multlinetaggap=\skip57
 \mathdisplay@stack=\toks27
 LaTeX Info: Redefining \[ on input line 2950.
 LaTeX Info: Redefining \] on input line 2951.
 )
 (/usr/share/texmf-dist/tex/latex/booktabs/booktabs.sty
 Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
-\heavyrulewidth=\dimen186
-\lightrulewidth=\dimen187
-\cmidrulewidth=\dimen188
-\belowrulesep=\dimen189
-\belowbottomsep=\dimen190
-\aboverulesep=\dimen191
-\abovetopsep=\dimen192
-\cmidrulesep=\dimen193
-\cmidrulekern=\dimen194
-\defaultaddspace=\dimen195
-\@cmidla=\count304
-\@cmidlb=\count305
-\@aboverulesep=\dimen196
-\@belowrulesep=\dimen197
-\@thisruleclass=\count306
-\@lastruleclass=\count307
-\@thisrulewidth=\dimen198
+\heavyrulewidth=\dimen185
+\lightrulewidth=\dimen186
+\cmidrulewidth=\dimen187
+\belowrulesep=\dimen188
+\belowbottomsep=\dimen189
+\aboverulesep=\dimen190
+\abovetopsep=\dimen191
+\cmidrulesep=\dimen192
+\cmidrulekern=\dimen193
+\defaultaddspace=\dimen194
+\@cmidla=\count303
+\@cmidlb=\count304
+\@aboverulesep=\dimen195
+\@belowrulesep=\dimen196
+\@thisruleclass=\count305
+\@lastruleclass=\count306
+\@thisrulewidth=\dimen197
 )
 (/usr/share/texmf-dist/tex/latex/siunitx/siunitx.sty
 Package: siunitx 2025-07-09 v3.4.14 A comprehensive (SI) units package
-\l__siunitx_number_uncert_offset_int=\count308
-\l__siunitx_number_exponent_fixed_int=\count309
-\l__siunitx_number_min_decimal_int=\count310
-\l__siunitx_number_min_integer_int=\count311
-\l__siunitx_number_round_precision_int=\count312
-\l__siunitx_number_lower_threshold_int=\count313
-\l__siunitx_number_upper_threshold_int=\count314
-\l__siunitx_number_group_first_int=\count315
-\l__siunitx_number_group_size_int=\count316
-\l__siunitx_number_group_minimum_int=\count317
-\l__siunitx_angle_tmp_dim=\dimen199
+\l__siunitx_number_uncert_offset_int=\count307
+\l__siunitx_number_exponent_fixed_int=\count308
+\l__siunitx_number_min_decimal_int=\count309
+\l__siunitx_number_min_integer_int=\count310
+\l__siunitx_number_round_precision_int=\count311
+\l__siunitx_number_lower_threshold_int=\count312
+\l__siunitx_number_upper_threshold_int=\count313
+\l__siunitx_number_group_first_int=\count314
+\l__siunitx_number_group_size_int=\count315
+\l__siunitx_number_group_minimum_int=\count316
+\l__siunitx_angle_tmp_dim=\dimen198
 \l__siunitx_angle_marker_box=\box59
 \l__siunitx_angle_unit_box=\box60
-\l__siunitx_compound_count_int=\count318
+\l__siunitx_compound_count_int=\count317
 
 (/usr/share/texmf-dist/tex/latex/translations/translations.sty
 Package: translations 2022/02/05 v1.12 internationalization of LaTeX2e packages
@@ -310,7 +303,7 @@ Package: translations 2022/02/05 v1.12 internationalization of LaTeX2e packages
 
 (/usr/share/texmf-dist/tex/latex/etoolbox/etoolbox.sty
 Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count319
+\etb@tempcnta=\count318
 )
 (/usr/share/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
 Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
@@ -330,65 +323,65 @@ Package pdftexcmds Info: \pdf@ifprimitive is available.
 Package pdftexcmds Info: \pdfdraftmode found.
 ))
 \l__siunitx_table_tmp_box=\box61
-\l__siunitx_table_tmp_dim=\dimen256
-\l__siunitx_table_column_width_dim=\dimen257
+\l__siunitx_table_tmp_dim=\dimen199
+\l__siunitx_table_column_width_dim=\dimen256
 \l__siunitx_table_integer_box=\box62
 \l__siunitx_table_decimal_box=\box63
 \l__siunitx_table_uncert_box=\box64
 \l__siunitx_table_before_box=\box65
 \l__siunitx_table_after_box=\box66
-\l__siunitx_table_before_dim=\dimen258
-\l__siunitx_table_carry_dim=\dimen259
-\l__siunitx_unit_tmp_int=\count320
-\l__siunitx_unit_position_int=\count321
-\l__siunitx_unit_total_int=\count322
+\l__siunitx_table_before_dim=\dimen257
+\l__siunitx_table_carry_dim=\dimen258
+\l__siunitx_unit_tmp_int=\count319
+\l__siunitx_unit_position_int=\count320
+\l__siunitx_unit_total_int=\count321
 )
 (/usr/share/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
-\c@float@type=\count323
+\c@float@type=\count322
 \float@exts=\toks28
 \float@box=\box67
 \@float@everytoks=\toks29
 \@floatcapt=\box68
 )
 Package translations Info: No language package found. I am going to use `englis
-h' as default language. on input line 13.
+h' as default language. on input line 12.
 
 (/usr/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count324
+\l__color_backend_stack_int=\count323
 )
 (./machine_vision_report.aux)
 \openout1 = `machine_vision_report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 13.
-LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
+LaTeX Font Info:    ... okay on input line 12.
 
 -- Lines per column: 58 (exact).
 (/usr/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count325
-\scratchdimen=\dimen260
+\scratchcounter=\count324
+\scratchdimen=\dimen259
 \scratchbox=\box69
-\nofMPsegments=\count326
-\nofMParguments=\count327
+\nofMPsegments=\count325
+\nofMParguments=\count326
 \everyMPshowfont=\toks30
-\MPscratchCnt=\count328
-\MPscratchDim=\dimen261
-\MPnumerator=\count329
-\makeMPintoPDFobject=\count330
+\MPscratchCnt=\count327
+\MPscratchDim=\dimen260
+\MPnumerator=\count328
+\makeMPintoPDFobject=\count329
 \everyMPtoPDFconversion=\toks31
 ) (/usr/share/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -405,99 +398,78 @@ File: translations-basic-dictionary-english.trsl (english translation file `tra
 nslations-basic-dictionary')
 )
 Package translations Info: loading dictionary `translations-basic-dictionary' f
-or `english'. on input line 13.
+or `english'. on input line 12.
 
-Underfull \hbox (badness 4608) in paragraph at lines 42--43
-[]\T1/ptm/m/n/10 The Proph-e-see GenX320 event cam-era, fea-tur-ing a
- []
-
-
-Underfull \hbox (badness 3000) in paragraph at lines 51--52
-[]\T1/ptm/m/n/10 Experimental eval-u-a-tion on the ASL-DVS dataset
- []
+** WARNING: \and is valid only when in conference or peerreviewca
+modes (line 18).
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 3
+6.
+(/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+)
+! Undefined control sequence.
+l.66 ...has pixel value $I_c(x,y) = \sum_i \mathbb
+                                                  {1}[p_i = c, x_i = x, y_i ...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
 
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fon
 ts/enc/dvips/base/8r.enc}
 
 
 ]
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 10
-0.
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 70
+.
  (/usr/share/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 2103) in paragraph at lines 108--109
-[]\T1/ptm/m/n/10 To bridge the do-main gap be-tween the DAVIS240C
- []
-
-[2]
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
-13.
- (/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-)
-<class_counts.png, id=21, 1156.32pt x 361.35pt>
-File: class_counts.png Graphic file (type png)
-<use class_counts.png>
-Package pdftex.def Info: class_counts.png  used on input line 137.
-(pdftex.def)             Requested size: 252.0pt x 78.74738pt.
-
-Overfull \hbox (0.95795pt too wide) in paragraph at lines 152--166
- [][] 
+Underfull \hbox (badness 10000) in paragraph at lines 69--71
+\T1/ptm/m/n/10 The re-sult-ing $\OT1/cmr/m/n/10 2[]\OML/cmm/m/it/10 H[]W$ \T1/p
+tm/m/n/10 ten-sor is bicubic-resized to
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 170--171
-[]\T1/ptm/m/n/10 The sys-tem is or-gan-ised into mod-u-lar Python
+Underfull \hbox (badness 10000) in paragraph at lines 74--75
+[]\T1/ptm/m/n/10 An \T1/pcr/m/n/10 EventFrameAugment \T1/ptm/m/n/10 trans-form 
+is ap-plied
  []
 
 
-Underfull \hbox (badness 6658) in paragraph at lines 170--171
-\T1/ptm/m/n/10 com-po-nents. \T1/pcr/m/n/10 preprocess.py \T1/ptm/m/n/10 pro-vi
-des the canon-i-cal
+Underfull \hbox (badness 4913) in paragraph at lines 74--75
+\T1/ptm/m/n/10 stochas-ti-cally to ev-ery train-ing sam-ple to bridge the
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 170--171
-\T1/pcr/m/n/10 events_to_frame() \T1/ptm/m/n/10 func-tion, pa-ram-e-terised by 
-a
- []
-
-
-Underfull \hbox (badness 6157) in paragraph at lines 170--171
-\T1/pcr/m/n/10 PreprocessConfig \T1/ptm/m/n/10 dat-a-class that is shared acros
-s
- []
-
-
-Underfull \hbox (badness 4647) in paragraph at lines 170--171
-\T1/ptm/m/n/10 se-ri-alises \T1/pcr/m/n/10 PreprocessConfig \T1/ptm/m/n/10 into
- ev-ery check-point.
- []
-
-
-Underfull \hbox (badness 2213) in paragraph at lines 170--171
-\T1/pcr/m/n/10 infer_web_live.py \T1/ptm/m/n/10 runs a Flask server that reads
- []
-
-[3 <./class_counts.png>]
-<training_curves.png, id=32, 867.24pt x 289.08pt>
-File: training_curves.png Graphic file (type png)
-<use training_curves.png>
-Package pdftex.def Info: training_curves.png  used on input line 191.
-(pdftex.def)             Requested size: 252.0pt x 83.99866pt.
-
-Overfull \hbox (6.35872pt too wide) in paragraph at lines 204--214
- [][] 
- []
-
-<confusion_matrices.png, id=33, 1872.39525pt x 899.15926pt>
+<confusion_matrices.png, id=14, 1872.39525pt x 899.15926pt>
 File: confusion_matrices.png Graphic file (type png)
 <use confusion_matrices.png>
-Package pdftex.def Info: confusion_matrices.png  used on input line 222.
-(pdftex.def)             Requested size: 252.0pt x 121.01082pt.
-[4 <./training_curves.png> <./confusion_matrices.png>]
-(./machine_vision_report.bbl) [5
+Package pdftex.def Info: confusion_matrices.png  used on input line 141.
+(pdftex.def)             Requested size: 516.0pt x 247.78406pt.
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 173--174
+[]\T1/ptm/b/n/10 Power: \T1/ptm/m/n/10 The GenX320 sen-sor draws $\OML/cmm/m/it
+/10 < \OT1/cmr/m/n/10 50 []$
+ []
+
+
+Underfull \hbox (badness 3148) in paragraph at lines 177--178
+\T1/ptm/m/n/10 hard-ware: 24-class ASL recog-ni-tion at 60 FPS max-i-
+ []
+
+(./machine_vision_report.bbl [3 <./confusion_matrices.png>]
+Underfull \hbox (badness 4505) in paragraph at lines 55--58
+[]\T1/ptm/m/n/8 Microsoft, ``ONNX run-time per-for-mance tun-ing for ARM plat-
+ []
+
+
+Underfull \hbox (badness 3108) in paragraph at lines 55--58
+\T1/ptm/m/n/8 forms,'' [On-line]. Avail-able: $https : / / onnxruntime . ai / d
+ocs / performance /
+ []
+
+) [4
 
 ] (./machine_vision_report.aux)
  ***********
@@ -506,31 +478,30 @@ L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8646 strings out of 469515
- 194665 string characters out of 5470807
- 588154 words of memory out of 5000000
- 37206 multiletter control sequences out of 15000+600000
- 744341 words of font info for 155 fonts, out of 8000000 for 9000
+ 8541 strings out of 469515
+ 192796 string characters out of 5470807
+ 590400 words of memory out of 5000000
+ 37111 multiletter control sequences out of 15000+600000
+ 741001 words of font info for 149 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
- 73i,11n,83p,1010b,615s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/font
-s/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-dist/fonts/type1/public/
-amsfonts/cm/cmr6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7
-.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texmf-dist/font
-s/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-sy7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/s
-hare/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf-dist
-/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/time
-s/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/sha
-re/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/typ
-e1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (5 pages, 388112 bytes).
+ 73i,11n,83p,761b,731s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fon
+ts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmmi8.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+r10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/sh
+are/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-dist/f
+onts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/
+cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr
+/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texmf-di
+st/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/ti
+mes/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/sh
+are/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on machine_vision_report.pdf (4 pages, 284409 bytes).
 PDF statistics:
- 113 PDF objects out of 1000 (max. 8388607)
- 65 compressed objects within 1 object stream
+ 101 PDF objects out of 1000 (max. 8388607)
+ 60 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 6 words of extra memory for PDF output out of 10000 (max. 10000000)
 

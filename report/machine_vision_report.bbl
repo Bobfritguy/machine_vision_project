@@ -26,20 +26,9 @@ P.~Lichtsteiner, C.~Posch, and T.~Delbruck, ``A 128$\times$128 120 {dB} 15
   {\textmu}s latency asynchronous temporal contrast vision sensor,'' \emph{IEEE
   Journal of Solid-State Circuits}, vol.~43, no.~2, pp. 566--576, Feb. 2008.
 
-\bibitem{posch2011}
-C.~Posch, D.~Matolin, and R.~Wohlgenannt, ``A {QVGA} 143 {dB} dynamic range
-  frame-free {PWM} image sensor with lossless pixel-level video compression and
-  time-domain {CDS},'' \emph{IEEE Journal of Solid-State Circuits}, vol.~46,
-  no.~1, pp. 259--275, Jan. 2011.
-
 \bibitem{prophesee2023}
 {Prophesee}, ``{GenX320} event-based vision sensor datasheet,'' [Online].
   Available: \url{https://www.prophesee.ai}, 2023.
-
-\bibitem{amir2017}
-A.~Amir \emph{et~al.}, ``A low power, fully event-based gesture recognition
-  system,'' in \emph{Proceedings of the IEEE Conference on Computer Vision and
-  Pattern Recognition (CVPR)}, 2017, pp. 7243--7252.
 
 \bibitem{bi2019}
 Y.~Bi, A.~Chadha, A.~Abbas, E.~Bourtsoulatze, and Y.~Andreopoulos,
@@ -57,9 +46,18 @@ J.~Deng \emph{et~al.}, ``{ImageNet}: A large-scale hierarchical image
   database,'' in \emph{Proceedings of the IEEE Conference on Computer Vision
   and Pattern Recognition (CVPR)}, 2009, pp. 248--255.
 
-\bibitem{tan2019}
-M.~Tan and Q.~Le, ``{EfficientNet}: Rethinking model scaling for convolutional
-  neural networks,'' in \emph{Proceedings of the International Conference on
-  Machine Learning (ICML)}, 2019, pp. 6105--6114.
+\bibitem{geekbench2024}
+{Primate Labs}, ``Geekbench 6 browser --- {Raspberry Pi 5} and {AMD Ryzen 7
+  5700X3D} results,'' [Online]. Available: \url{https://browser.geekbench.com},
+  2024.
+
+\bibitem{onnxruntime2024}
+{Microsoft}, ``{ONNX} runtime performance tuning for {ARM} platforms,''
+  [Online]. Available:
+  \url{https://onnxruntime.ai/docs/performance/tune-performance/}, 2024.
+
+\bibitem{geerling2023}
+J.~Geerling, ``{Raspberry Pi 5} review,'' [Online]. Available:
+  \url{https://www.jeffgeerling.com/blog/2023/raspberry-pi-5-review}, 2023.
 
 \end{thebibliography}
