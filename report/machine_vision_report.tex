@@ -97,6 +97,8 @@ To further reduce the domain gap, approximately 1,500 labelled samples were reco
 
 Two runs were performed using the hyperparameters in Table~\ref{tab:hyperparams}: \textit{Aug only} (ASL-DVS + augmentation) and \textit{Aug + Recorded} (adding oversampled GenX320 data). Both use AdamW with cosine annealing and label smoothing ($\epsilon{=}0.1$). Training ran on a CPU-only workstation (AMD Ryzen 7 5700X3D, \SI{32}{GB} RAM) without GPU acceleration.
 
+For the \textit{Aug + Recorded} run, the ASL-DVS (80,640 samples) and GenX320 (1,500 samples) sets are combined into a single dataset and fed through a \texttt{WeightedRandomSampler}. Each GenX320 sample is assigned a weight of $w = N_{\text{ASL}} / N_{\text{GenX320}} \approx 54$, so that on average both sources contribute equally to each epoch. Because the sampler draws with replacement and a different random augmentation is applied on every draw, no two presentations of the same GenX320 sample are identical. \texttt{EventFrameAugment} is applied during training only; validation and test sets are preprocessed without augmentation to give a clean accuracy figure.
+
 \begin{table}[H]
     \centering
     \caption{Training Hyperparameters}
@@ -116,7 +118,14 @@ Two runs were performed using the hyperparameters in Table~\ref{tab:hyperparams}
 
 \subsection{Live Inference System}
 
-The deployed system uses the Prophesee Metavision SDK to read \SI{50}{ms} event windows from the GenX320. Each window is converted through the live preprocessing pipeline (source resolution $320{\times}320$, \textit{accumulate\_then\_resize} to $256{\times}256$) and passed to the model. Results are published via a Flask web dashboard displaying the event frame as a red/blue false-colour MJPEG stream, the top prediction with confidence, and per-window latency metrics. The spelling recorder commits a letter only after a configurable streak of consecutive high-confidence windows ($\geq$0.85) for the same class, subject to a per-letter cooldown of \SI{0.8}{s}.
+The deployed system uses the Prophesee Metavision SDK to read \SI{50}{ms} event windows from the GenX320. Each window is converted through the live preprocessing pipeline (source resolution $320{\times}320$, \textit{accumulate\_then\_resize} to $256{\times}256$) and passed to the model. Results are published via a Flask web dashboard (Fig.~\ref{fig:dashboard}) displaying the event frame as a red/blue false-colour MJPEG stream, the top prediction with confidence, and per-window latency metrics. The spelling recorder commits a letter only after a configurable streak of consecutive high-confidence windows ($\geq$0.85) for the same class, subject to a per-letter cooldown of \SI{0.8}{s}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{dashboard_screenshot.png}
+    \caption{Web dashboard during live inference. The left pane shows the MJPEG event stream (red = ON, blue = OFF); the right pane displays the current prediction, confidence, per-window metrics, and the spelling recorder.}
+    \label{fig:dashboard}
+\end{figure}
 
 % ============================================================
 \section{Testing and Results}

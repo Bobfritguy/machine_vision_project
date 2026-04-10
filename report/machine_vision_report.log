@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 17:45
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.3.13)  10 APR 2026 18:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -447,23 +447,53 @@ Underfull \hbox (badness 4913) in paragraph at lines 81--82
 \T1/ptm/m/n/10 stochas-ti-cally to ev-ery train-ing sam-ple to bridge the
  []
 
-<confusion_matrices.png, id=19, 1872.39525pt x 899.15926pt>
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--101
+\T1/ptm/m/n/10 sam-ples) and GenX320 (1,500 sam-ples) sets are
+ []
+
+
+Underfull \hbox (badness 7291) in paragraph at lines 100--101
+\T1/ptm/m/n/10 com-bined into a sin-gle dataset and fed through a
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--101
+\T1/pcr/m/n/10 WeightedRandomSampler\T1/ptm/m/n/10 . Each GenX320 sam-ple
+ []
+
+
+Underfull \hbox (badness 1527) in paragraph at lines 100--101
+\T1/pcr/m/n/10 EventFrameAugment \T1/ptm/m/n/10 is ap-plied dur-ing train-ing o
+nly;
+ []
+
+<dashboard_screenshot.png, id=19, 658.1388pt x 433.62pt>
+File: dashboard_screenshot.png Graphic file (type png)
+<use dashboard_screenshot.png>
+Package pdftex.def Info: dashboard_screenshot.png  used on input line 125.
+(pdftex.def)             Requested size: 252.0pt x 166.03444pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [2]
+<confusion_matrices.png, id=28, 1872.39525pt x 899.15926pt>
 File: confusion_matrices.png Graphic file (type png)
 <use confusion_matrices.png>
-Package pdftex.def Info: confusion_matrices.png  used on input line 148.
+Package pdftex.def Info: confusion_matrices.png  used on input line 157.
 (pdftex.def)             Requested size: 516.0pt x 247.78406pt.
-[2]
-Underfull \hbox (badness 10000) in paragraph at lines 178--179
+
+Underfull \hbox (badness 10000) in paragraph at lines 187--188
 []\T1/ptm/b/n/10 Power: \T1/ptm/m/n/10 The GenX320 sen-sor draws $\OML/cmm/m/it
 /10 < \OT1/cmr/m/n/10 50 []$
  []
 
 
-Underfull \hbox (badness 3148) in paragraph at lines 182--183
+Underfull \hbox (badness 3148) in paragraph at lines 191--192
 \T1/ptm/m/n/10 hard-ware: 24-class ASL recog-ni-tion at 60 FPS max-i-
  []
 
-(./machine_vision_report.bbl [3 <./confusion_matrices.png>]
+(./machine_vision_report.bbl [3 <./dashboard_screenshot.png (PNG copy)>]
 Underfull \hbox (badness 4505) in paragraph at lines 55--58
 []\T1/ptm/m/n/8 Microsoft, ``ONNX run-time per-for-mance tun-ing for ARM plat-
  []
@@ -476,17 +506,17 @@ ocs / performance /
 
 ) [4
 
-] (./machine_vision_report.aux)
+ <./confusion_matrices.png>] (./machine_vision_report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8552 strings out of 469515
- 193042 string characters out of 5470807
- 590422 words of memory out of 5000000
- 37122 multiletter control sequences out of 15000+600000
+ 8560 strings out of 469515
+ 193273 string characters out of 5470807
+ 588444 words of memory out of 5000000
+ 37130 multiletter control sequences out of 15000+600000
  741001 words of font info for 149 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
  73i,11n,83p,810b,731s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -503,10 +533,10 @@ cmsy6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr
 st/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/ti
 mes/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/sh
 are/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on machine_vision_report.pdf (4 pages, 462486 bytes).
+Output written on machine_vision_report.pdf (4 pages, 698547 bytes).
 PDF statistics:
- 103 PDF objects out of 1000 (max. 8388607)
+ 104 PDF objects out of 1000 (max. 8388607)
  60 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 
